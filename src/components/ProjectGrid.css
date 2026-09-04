@@ -1,0 +1,24 @@
+.projects__heading {
+  font-size: 18px;
+  margin: 0 0 16px;
+}
+
+.projects__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  padding-bottom: 24px;
+}
+
+@media (max-width: 720px) {
+  .projects__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 460px) {
+  .projects__grid {
+    grid-template-columns: 1fr;
+  }
+}

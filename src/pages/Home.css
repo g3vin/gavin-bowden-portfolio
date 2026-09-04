@@ -1,0 +1,39 @@
+.site-title h3 {
+  font-weight: bold;
+}
+
+/* Sized so the first row of tiles is clipped by the fold */
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  min-height: calc(100vh - 210px);
+  min-height: calc(100svh - 210px);
+  padding-bottom: 32px;
+}
+
+/* Held at the old container width so the copy keeps a readable measure
+   while the project grid uses the full page width. */
+.hero-copy {
+  flex: 1;
+  max-width: 768px;
+}
+
+.hero-ascii {
+  flex: none;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--text);
+  /* Keeps the art out of any text the visitor selects and copies. */
+  user-select: none;
+}
+
+/* Below this the art crowds the copy out of its measure; it carries no
+   information, so drop it rather than shrink it. */
+@media (max-width: 800px) {
+  .hero-ascii {
+    display: none;
+  }
+}
