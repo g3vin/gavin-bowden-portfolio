@@ -18,8 +18,8 @@ npm run dev
 
 ## Project data (`src/data/projects.js`)
 
-For the prject tile, `poster` is the still shown (a gif's first
-frame), `gif` is loaded only on hover so nothing animates until asked.
+For the project tile, `poster` is the still shown (a gif's first
+frame), `gif` is loaded only on hover.
 
 `blocks` drives the detail page top to bottom. These are the types:
 
