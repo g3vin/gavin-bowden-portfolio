@@ -140,18 +140,19 @@ export const projects = [
     role: 'Solo — Purdue University Archery Club',
     stack: ['React 18', 'React Router 6', 'Vite', 'Firebase', 'Cloud Functions', 'Firestore', 'Discord API', 'Resend'],
     links: [{ label: 'Live site', href: 'https://purduearchery.club' }],
-    // No poster yet — swap in a real screenshot or clip once captured.
+    poster: '/projects/puac-front-page-poster.jpg',
+    gif: '/projects/puac-front-page.gif',
     blocks: [
       { type: 'heading', text: 'Overview' },
       {
         type: 'text',
         text: 'Every club member is already on the club Discord. That\'s where practices get scheduled, where officers post, and where bans already happen when someone needs to be removed. Rather than build a second identity system, I built the whole platform on top of it: just sign in with Discord. Everything downstream, like who\'s an officer, who\'s allowed in, and whose pass is active,  reads off that one login. What started as "replace the paper sign-in sheet" grew into membership, QR check-in, pass sales pulled automatically off order emails, a staff dashboard, and a CMS for the public site, all on one Firestore project.',
       },
-      // TODO: screenshot — landing page hero / photo pile
       {
-        type: 'image',
-        src: '/projects/puac-landing.png',
-        alt: 'Purdue Archery Club landing page with animated hero and photo pile',
+        type: 'video',
+        src: '/projects/puac-front-page.mp4',
+        poster: '/projects/puac-front-page-video-poster.jpg',
+        ratio: '1280 / 788',
         caption: 'The public landing page with the calendar, pricing cards, and the photo pile all being officer editable, not hardcoded.',
       },
       { type: 'heading', text: 'Membership & identity' },

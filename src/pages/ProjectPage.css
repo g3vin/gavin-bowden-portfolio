@@ -5,10 +5,8 @@
 }
 
 .project__back {
-  display: inline-block;
   font-size: 14px;
   text-decoration: none;
-  margin-bottom: 32px;
 }
 
 .project__back:hover {

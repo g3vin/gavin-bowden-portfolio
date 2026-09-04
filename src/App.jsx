@@ -3,6 +3,7 @@ import ProjectPage from './pages/ProjectPage'
 import NotFound from './pages/NotFound'
 import Footer from './components/Footer'
 import SiteTitle from './components/SiteTitle'
+import Link from './components/Link'
 import { getProject } from './data/projects'
 import { usePath } from './router'
 
@@ -18,10 +19,17 @@ function Page({ path }) {
 
 function App() {
   const path = usePath()
+  const isProjectPage = /^\/projects\/[^/]+\/?$/.test(path)
 
   return (
     <>
-      <SiteTitle />
+      <SiteTitle>
+        {isProjectPage && (
+          <Link className="project__back" to="/">
+            ← All projects
+          </Link>
+        )}
+      </SiteTitle>
       <Page path={path} />
       <Footer />
     </>

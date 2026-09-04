@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import ContentBlocks from '../components/ContentBlocks'
-import Link from '../components/Link'
 import './ProjectPage.css'
 
 function ProjectPage({ project }) {
@@ -15,10 +14,6 @@ function ProjectPage({ project }) {
 
   return (
     <article className="project">
-      <Link className="project__back" to="/">
-        ← All projects
-      </Link>
-
       <h1 className="project__title">{title}</h1>
       <p className="project__summary">{summary}</p>
 
