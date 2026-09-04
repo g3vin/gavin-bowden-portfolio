@@ -1,5 +1,5 @@
 import ProjectGrid from '../components/ProjectGrid'
-import flashAscii from '../assets/flash-ascii.txt?raw'
+import flashAscii from '../assets/cat.txt?raw'
 import './Home.css'
 
 const art = flashAscii.replace(/^\n+|\s+$/g, '')
@@ -7,7 +7,6 @@ const art = flashAscii.replace(/^\n+|\s+$/g, '')
 function Home() {
   return (
     <>
-    <div className="site-title"><h3>gavinbowden.me</h3></div>
       <header className="hero">
         <div className="hero-copy">
           <h2>Hi, I'm</h2>
@@ -19,7 +18,7 @@ function Home() {
           <div>
             <button onClick={() => window.open('https://github.com/g3vin', '_blank')}>Github</button>
             <button onClick={() => window.open('https://www.linkedin.com/in/g3vin/', '_blank')}>LinkedIn</button>
-            <button onClick={() => window.open('https://gavinbowden.com/resume.pdf', '_blank')}>Résumé</button>
+            <button onClick={() => window.open('/resume.pdf', '_blank')}>Résumé</button>
             <button onClick={() => window.open('mailto:hello@gavinbowden.me', '_blank')}>Email</button>
           </div>
         </div>

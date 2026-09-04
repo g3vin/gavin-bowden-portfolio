@@ -1,4 +1,6 @@
 .project {
+  max-width: 80ch;
+  margin: 0 auto;
   padding-bottom: 64px;
 }
 
@@ -19,7 +21,6 @@
 
 .project__summary {
   font-size: 18px;
-  max-width: 60ch;
   margin-bottom: 24px;
 }
 

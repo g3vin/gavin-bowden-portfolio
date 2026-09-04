@@ -2,6 +2,7 @@ import Home from './pages/Home'
 import ProjectPage from './pages/ProjectPage'
 import NotFound from './pages/NotFound'
 import Footer from './components/Footer'
+import SiteTitle from './components/SiteTitle'
 import { getProject } from './data/projects'
 import { usePath } from './router'
 
@@ -20,6 +21,7 @@ function App() {
 
   return (
     <>
+      <SiteTitle />
       <Page path={path} />
       <Footer />
     </>

@@ -1,7 +1,3 @@
-.site-title h3 {
-  font-weight: bold;
-}
-
 /* Sized so the first row of tiles is clipped by the fold */
 .hero {
   display: flex;
@@ -23,7 +19,8 @@
   flex: none;
   margin: 0;
   font-family: var(--mono);
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: bold;
   line-height: 1.15;
   color: var(--text);
   /* Keeps the art out of any text the visitor selects and copies. */

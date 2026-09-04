@@ -4,12 +4,10 @@
 }
 
 .block__text {
-  max-width: 68ch;
   margin: 0 0 16px;
 }
 
 .block__list {
-  max-width: 68ch;
   margin: 0 0 16px;
   padding-left: 20px;
 }
