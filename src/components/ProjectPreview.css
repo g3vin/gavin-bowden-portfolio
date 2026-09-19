@@ -139,35 +139,62 @@
   text-decoration: underline;
   text-decoration-color: transparent;
   text-underline-offset: 0.25em;
-  transition: text-decoration-color 0.2s ease;
+  transition: text-decoration-color 0.18s var(--ease-out);
 }
 
 .preview__cta-arrow {
   display: inline-block;
-  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* A little past 4px and back. The overshoot is small enough to read as the
+     arrow having some give rather than as a bounce. */
+  transition: transform 0.22s var(--ease-nudge);
 }
 
-/* The description and picture wait for the title to finish, then rise in. Keyed
-   on .is-active so the animation restarts each time the card is shown. */
-.preview.is-active .preview__desc,
-.preview.is-active .preview__media,
-.preview.is-active .preview__cta {
-  animation: preview-rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  animation-delay: var(--type-ms);
+/* Everything under the title, in the order it is meant to be read. Keyed on
+   .is-active so the whole sequence restarts each time the panel is handed a
+   different project.
+
+   It starts a beat before the last character rather than after it. Waiting for
+   the typing to finish left a hole between the title and the rest, and the card
+   read as a queue of separate animations taking their turns; overlapping them by
+   --stage-lead reads as one movement that began at the title and is still
+   running. The eye reads the ORDER from which thing starts moving first, not
+   from which finishes, so the beats stay legible while overlapping.
+
+   Each one moves by what it weighs. The summary is a line of text and barely
+   travels -- text that slides any real distance reads as a slide rather than as
+   a line arriving. The poster is the largest object on the card, so it comes
+   from furthest, takes the longest, and grows the last hair of its size on the
+   way. The link under it is small and quick.
+
+   And all of it on one curve, which spends nearly all its travel in the first
+   quarter of the duration: each beat lands promptly and settles, instead of the
+   whole card drifting in at an even speed. */
+.preview.is-active .preview__desc {
+  animation: preview-rise 0.38s var(--ease-enter) both;
+  animation-delay: calc(var(--type-ms) - var(--stage-lead));
 }
 
 .preview.is-active .preview__media {
-  animation-delay: calc(var(--type-ms) + 120ms);
+  animation: preview-lift 0.52s var(--ease-enter) both;
+  animation-delay: calc(var(--type-ms) - var(--stage-lead) + 120ms);
 }
 
 .preview.is-active .preview__cta {
-  animation-delay: calc(var(--type-ms) + 240ms);
+  animation: preview-rise 0.34s var(--ease-enter) both;
+  animation-delay: calc(var(--type-ms) - var(--stage-lead) + 230ms);
 }
 
 @keyframes preview-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
+  }
+}
+
+@keyframes preview-lift {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
   }
 }
 

@@ -5,12 +5,13 @@ import Barcode from "../components/Barcode";
 import Link from "../components/Link";
 import { getNextProject, isInProgress, projectPath } from "../data/projects";
 import { sheetStyle } from "../lib/paper";
+import { typePace } from "../lib/typing";
 import { SITE_HOST } from "../lib/seo";
 import "../styles/paper.css";
 import "./ProjectPage.css";
 
 function ProjectPage({ project }) {
-  const { slug, year, role, stack, links, blocks, receipt } =
+  const { slug, title, year, role, stack, links, blocks, receipt } =
     project;
 
   const next = getNextProject(slug);
@@ -24,7 +25,16 @@ function ProjectPage({ project }) {
           page's head: the title types in as the <h1> over the summary. The
           project's details print on a small receipt beside it. No poster here
           -- the writeup below has its own figures. */}
-      <header className="project__head">
+      <header
+        className="project__head"
+        /* The head is one movement in three beats, and all three are counted
+           from the moment the title finishes typing. The card sets that number
+           on itself for the summary under the title; the details slip is its
+           sibling and cannot see it, so it is put here, on the one box that
+           contains both. See the sequence comments in ProjectPage.css and
+           ../components/ProjectPreview.css. */
+        style={{ "--type-ms": `${typePace(title).total}ms` }}
+      >
         <ProjectPreview project={project} heading />
 
         <aside className="paper project-slip__paper" aria-label="Project details">

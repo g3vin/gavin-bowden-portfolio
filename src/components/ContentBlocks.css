@@ -114,11 +114,21 @@
 .window {
   --window-bar: #e8e8ea;
   --window-edge: rgba(0, 0, 0, 0.12);
+  /* The one knob the chrome is drawn from: everything else below is a fraction
+     of the title bar's height, so the bar, the lights, their spacing and the
+     corners all keep their proportions to each other. 30px is a real title bar
+     and is what a full-measure column gets; below the 626px viewport where the
+     column stops being 68ch and starts being the screen, the bar tracks the
+     screen instead, because chrome that stays 30px over a recording half the
+     size is chrome at twice the scale. */
+  --window-chrome: clamp(16px, 4.8vw, 30px);
 
   overflow: hidden;
-  /* 16px rather than a tighter 12px: the recordings keep the browser's own
-     rounded bottom corners, and anything less lets their black show through. */
-  border-radius: 16px;
+  /* 0.533 of the bar -- 16px at full size, rather than a tighter 12px: the
+     recordings keep the browser's own rounded bottom corners, and anything less
+     lets their black show through. Those corners are in the recording's pixels,
+     so they shrink with the window and the radius has to shrink with them. */
+  border-radius: calc(var(--window-chrome) * 0.533);
   background: var(--window-bar);
   box-shadow:
     0 0 0 1px var(--window-edge),
@@ -136,14 +146,14 @@
 .window__bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0 12px;
+  gap: calc(var(--window-chrome) * 0.267);
+  height: var(--window-chrome);
+  padding: 0 calc(var(--window-chrome) * 0.4);
 }
 
 .window__light {
-  width: 12px;
-  height: 12px;
+  width: calc(var(--window-chrome) * 0.4);
+  height: calc(var(--window-chrome) * 0.4);
   border-radius: 50%;
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
 }

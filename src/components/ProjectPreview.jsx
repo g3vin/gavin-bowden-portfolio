@@ -1,18 +1,14 @@
 import { useRef, useState } from "react";
 import { prefersReducedMotion, useIsoLayoutEffect } from "../lib/media";
+import { typePace } from "../lib/typing";
 import "./ProjectPreview.css";
-
-// Per-character pace, and the ceiling on the whole title: a long name types
-// faster rather than making the reader wait for it.
-const CHAR_MS = 28;
-const MAX_TYPE_MS = 650;
 
 // How many characters of `text` are showing. Restarts whenever the text changes
 // or the card becomes active again; shows everything at once for a reader who
 // asked for less motion. The delay is read when typing starts rather than being
 // a dependency: the panel stops asking for one partway through, and that must
 // not restart a title that is already on screen.
-function useTypewriter(text, { delay = 0, active = true, step = CHAR_MS }) {
+function useTypewriter(text, { delay = 0, active = true, step }) {
   const [count, setCount] = useState(() => (active ? 0 : text.length));
   // The delay this run actually started with, so the fade-ins below the title
   // are timed off the same number.
@@ -68,10 +64,10 @@ function ProjectPreview({
   className = "",
 }) {
   const { title, description, summary, poster } = project;
-  const step = Math.min(CHAR_MS, MAX_TYPE_MS / Math.max(1, title.length));
+  const { step, total } = typePace(title);
   const { count, wait } = useTypewriter(title, { delay, active, step });
   const done = count >= title.length;
-  const typeMs = Math.round(step * title.length + wait);
+  const typeMs = total + wait;
   const Title = heading ? "h1" : "p";
   const showPoster = poster && !heading;
 

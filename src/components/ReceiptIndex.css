@@ -66,13 +66,23 @@
   transform: translateX(calc(var(--preview-w) / 2));
   /* Eased out rather than in-and-out: the move starts well before the first
      project is live, so it should leave promptly and arrive gently.
-     The delay is the closing half of the sequence -- the card fades out first,
-     and only then does the paper come back to centre. Opening cancels it
-     (below), so the paper leaves immediately and the card waits for it instead. The two directions are mirror images. */
-  /* The opening half of this — 0.34s, no delay — is the slide PANEL_SLIDE_MS in
+
+     The two custom properties are the closing half of the sequence; opening
+     overrides both (below). Closing, the card fades out and the paper follows it
+     back — but only just. The 0.26s this waited used to be the card's whole fade
+     plus a beat, which made the return read as much slower than the departure
+     even though the slide itself was the same length: nothing moved for a
+     quarter of a second, and by the time the paper started the reader had
+     already read the movement as late. Overlapping the two — the paper leaves
+     while the last of the card is still going — is what makes the close feel
+     like the open. It is also a shade quicker than the open, the way an exit
+     should be: there is nothing at the end of it to arrive at, since the reader
+     has scrolled past the list.
+
+     The opening half — 0.34s, no delay — is the slide PANEL_SLIDE_MS in
      ReceiptIndex.jsx holds the settle off for, so the reader gets the receipt's
      move on its own instead of the page scrolling underneath it. */
-  transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) var(--slide-delay, 0.26s);
+  transition: transform var(--slide-ms, 0.3s) var(--ease-out) var(--slide-delay, 0.1s);
   /* Two jobs. It keeps the flex row taller than the receipt so the sticky panel
      still has a containing block near the page bottom, and it is the run-out the
      ending needs: without it the page stops scrolling only ~60px after the last
@@ -83,6 +93,7 @@
 
 .is-open .receipt-paper {
   transform: none;
+  --slide-ms: 0.34s;
   --slide-delay: 0s;
 }
 
@@ -248,11 +259,12 @@ html:has(.receipt__items) {
   opacity: 0;
   pointer-events: none;
   /* visibility, not just opacity, so a closed panel costs nothing to paint. It
-     fades out first and is dropped once the paper has started back to centre. */
+     goes out quickly and is dropped the moment it is transparent -- the paper is
+     already on its way back under it by then (see --slide-delay above). */
   visibility: hidden;
   transition:
-    opacity 0.2s ease,
-    visibility 0s linear 0.26s;
+    opacity 0.16s var(--ease-out),
+    visibility 0s linear 0.16s;
 }
 
 .is-open .receipt-preview {
@@ -260,7 +272,7 @@ html:has(.receipt__items) {
   visibility: visible;
   pointer-events: auto;
   transition:
-    opacity 0.2s ease var(--preview-in),
+    opacity 0.22s var(--ease-enter) var(--preview-in),
     visibility 0s linear var(--preview-in);
 }
 

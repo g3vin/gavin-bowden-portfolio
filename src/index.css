@@ -18,6 +18,31 @@
   /* The page's top and bottom padding. */
   --page-pad-block: 32px;
 
+  /* Motion. Three curves, each with one job, so nothing on the site has to
+     invent its own and no two things that move together disagree about how.
+
+       enter — for something arriving. Nearly all of the travel is spent in the
+               first quarter of the duration, so a beat lands promptly and then
+               settles, rather than drifting in at an even speed. It is what
+               makes a staged entrance read as decisive at durations long enough
+               to be watched.
+       out   — for something leaving, or continuing a movement already under way:
+               it goes at speed and arrives with none. The receipt's slide across
+               the home page uses it because the reader's own scroll has just run
+               out and the slide should look like the tail of it.
+       nudge — a few pixels, under the pointer, with a little overshoot. Small
+               enough that the overshoot reads as give rather than as a bounce. */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-nudge: cubic-bezier(0.34, 1.28, 0.64, 1);
+
+  /* How far ahead of the title's last character the rest of the head starts.
+     Shared by the card's own sequence (components/ProjectPreview.css) and the
+     details slip beside it on a project page (pages/ProjectPage.css), which are
+     two stylesheets printing one movement. See the sequence comment in the
+     first of them for why the overlap is there at all. */
+  --stage-lead: 140ms;
+
   font: 16px/1.5 var(--sans);
   color-scheme: light dark;
   color: var(--text);

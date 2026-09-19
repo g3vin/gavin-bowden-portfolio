@@ -28,11 +28,36 @@
   font-size: 17px;
 }
 
-/* Lined up with the title's cap height rather than the top of its box, and
-   printed a beat after the page arrives, once the title is mostly typed. */
+/* Lined up with the title's cap height rather than the top of its box, and fed
+   out last: the third beat of the head, after the title and the summary beside
+   it.
+
+   The delay counts from the same --type-ms the summary does -- set on
+   .project__head in ProjectPage.jsx, since the slip sits outside the card that
+   owns the typing -- so the order holds for a one-word title and for a
+   five-word one. It used to be a flat 0.45s from page load, which was only ever
+   right for a title of about average length: on the longest ones the slip
+   printed a fifth of a second BEFORE the summary it is meant to follow, and on
+   the shortest it arrived to a head that had been sitting finished for a quarter
+   of a second.
+
+   It is also the one thing in the head that is a physical object, so it arrives
+   like one rather than like more text. It feeds DOWNWARD, the way a receipt
+   leaves a printer, while the type on the left rises -- and it comes in a third
+   of a degree off square, because a sheet that has just been torn off does not
+   land perfectly straight. Both are small enough to be felt rather than
+   noticed. */
 .project-slip__paper {
   margin-top: 14px;
-  animation: preview-rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) 0.45s both;
+  animation: slip-feed 0.46s var(--ease-enter) both;
+  animation-delay: calc(var(--type-ms) - var(--stage-lead) + 180ms);
+}
+
+@keyframes slip-feed {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) rotate(-0.35deg);
+  }
 }
 
 /* A slip is a character grid: the width it is set to, less this padding, over

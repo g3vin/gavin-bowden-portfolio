@@ -20,6 +20,7 @@
 
 .sheet {
   --tear: 14px;
+  --press-tint: rgb(0 0 0 / 0.07);
 
   background-color: var(--receipt-paper);
   /* Five layers, listed top to bottom: the lighting on the sheet first, then the
@@ -217,13 +218,23 @@
    the ones that are not `.slip-link`s — the receipt's line items, which darken
    when the scroll position selects one as well as under the pointer, and the
    void slip's way home. */
-.slip-link:hover,
 .slip-link:focus-visible,
-.slip-press:hover,
 .slip-press:focus-visible,
 .slip-press.is-active {
-  background: rgb(0 0 0 / 0.07);
-  box-shadow: 0 0 0 4px rgb(0 0 0 / 0.07);
+  background: var(--press-tint);
+  box-shadow: 0 0 0 4px var(--press-tint);
+}
+
+/* A touch screen has no pointer to hover with, so it synthesises one on tap and
+   parks it on whatever was last touched: a line brushed on the way past a scroll
+   keeps the darkening with nothing open under it, until the next tap elsewhere.
+   Only a device that can really hover gets the hover half of the rule. */
+@media (hover: hover) and (pointer: fine) {
+  .slip-link:hover,
+  .slip-press:hover {
+    background: var(--press-tint);
+    box-shadow: 0 0 0 4px var(--press-tint);
+  }
 }
 
 /* Printed furniture -------------------------------------------------------- */
