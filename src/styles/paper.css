@@ -1,0 +1,297 @@
+/* The printed-paper vocabulary, shared by the receipt on the home page and the
+   slips on a project page. Anything specific to one of those lives with it. */
+
+/* Doto, subset to printable ASCII plus Latin-1 (the accents in "Résumé") and a
+   few symbols. Variable on two axes: wght drives weight, ROND the roundness of
+   the dots. SIL Open Font License; see ../assets/fonts/doto-OFL.txt. */
+@font-face {
+  font-family: 'Receipt';
+  src: url('../assets/fonts/doto-subset.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The mask that cuts the torn edges also clips a box-shadow, so the shadow
+   lives on this wrapper as a filter, which respects the mask's alpha. */
+.paper {
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.18)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.12));
+}
+
+.sheet {
+  --tear: 14px;
+
+  background-color: var(--receipt-paper);
+  /* Five layers, listed top to bottom: the lighting on the sheet first, then the
+     substrate under it.
+       1. creases   — per-sheet, from ../lib/paper.js on --paper-creases, so every
+                      sheet on the page is folded differently
+       2. sheen     — a receipt curls off the roll, and the coated surface is
+                      satin rather than matte, so the long edges sit in shadow
+                      and a broad highlight falls across the sheet
+       3. grain     — the coating's micro-texture. Faint: a thermal sheet is
+                      precoated and calendered, so it is smooth, and sandy grain
+                      at any real strength is the tell that it is not paper
+       4. striations— the machine direction runs down the roll, so coating and
+                      calender streaks run down the receipt, never across it.
+                      Narrow and sparse: a blade streak is a line, and evenly
+                      spaced soft bands read as CSS rather than as paper. The
+                      period is a shade under the sheet width so the handful of
+                      streaks on it never resolve into a rhythm
+       5. mottle    — formation: fibre clumping in the base sheet showing through
+                      the coating as soft cloudiness. The largest feature by far,
+                      and the one the eye actually reads as paper
+     Baked-in opacity on every layer keeps them all on one background shorthand,
+     so nothing has to be stacked above the text.
+
+     Both noise tiles take a single turbulence and split it two ways — black
+     where the noise runs high, white where it runs low — because paper reads as
+     both denser and thinner than its average, not only darker. The two halves
+     are kept mutually exclusive by the three-entry transfer tables, which hold
+     each at zero across the half of the range the other one owns: overlapping
+     translucent black and white do not cancel, they compound, and the pair of
+     them laid over each other is what was quietly dragging the paper a good ten
+     levels darker than --receipt-paper says it is.
+
+     Two more notes on the chain: the alpha comes from one channel (the matrix
+     takes R alone), since turbulence writes independent noise into all four and
+     letting colour through is what makes grain read as compression
+     artefacting; and sRGB interpolation is set explicitly, as the linearRGB
+     default moves the midpoint and lands differently across engines.
+
+     The one place colour is wanted is the mottle's shadow half, whose matrix
+     lifts a little blue rather than dropping to flat black. A neutral shadow on
+     an optically brightened sheet goes muddy — the shading has to belong to the
+     same stock as the paper. The grain stays neutral; at that amplitude and
+     that size there is nothing there to carry a hue.
+
+     Both tiles are wider than any sheet — .receipt-paper is flex 0 1 400px and
+     a slip is max-width 400px — so neither can ever repeat sideways, and the
+     only join that could show is the horizontal one. Each tile is therefore
+     masked to nothing at its top and bottom edge, so stacked tiles meet at zero
+     and the join cannot show however the renderer handles it. That is not
+     belt-and-braces over stitchTiles: a stitched tile measured a hard step at
+     the seam some twenty-six times the variation either side of it, which on a
+     flat pale sheet is a hairline straight across the paper. The two heights
+     (620 and 940) differ so the fades never line up. */
+  background-image:
+    var(--paper-creases, none),
+    linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.03) 0%,
+      rgb(0 0 0 / 0) 9%,
+      rgb(255 255 255 / 0.045) 28%,
+      rgb(255 255 255 / 0) 55%,
+      rgb(0 0 0 / 0.014) 82%,
+      rgb(0 0 0 / 0.032) 100%
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='620'%3E%3Cfilter id='g' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.16' numOctaves='4' seed='5' stitchTiles='stitch' result='n'/%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0' result='k'/%3E%3CfeComponentTransfer in='k' result='d'%3E%3CfeFuncA type='table' tableValues='0 0 0.05'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0' result='v'/%3E%3CfeComponentTransfer in='v' result='l'%3E%3CfeFuncA type='table' tableValues='0.045 0 0'/%3E%3C/feComponentTransfer%3E%3CfeMerge%3E%3CfeMergeNode in='d'/%3E%3CfeMergeNode in='l'/%3E%3C/feMerge%3E%3C/filter%3E%3ClinearGradient id='gf' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23000'/%3E%3Cstop offset='0.08' stop-color='%23fff'/%3E%3Cstop offset='0.92' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E%3Cmask id='gm'%3E%3Crect width='420' height='620' fill='url(%23gf)'/%3E%3C/mask%3E%3Crect width='420' height='620' filter='url(%23g)' mask='url(%23gm)'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0) 0px,
+      rgb(0 0 0 / 0) 15px,
+      rgb(0 0 0 / 0.01) 17px,
+      rgb(0 0 0 / 0) 19px,
+      rgb(255 255 255 / 0) 50px,
+      rgb(255 255 255 / 0.013) 52px,
+      rgb(255 255 255 / 0) 54px,
+      rgb(0 0 0 / 0) 95px,
+      rgb(0 0 0 / 0.014) 98px,
+      rgb(0 0 0 / 0) 101px,
+      rgb(0 0 0 / 0) 139.5px,
+      rgb(0 0 0 / 0.007) 141px,
+      rgb(0 0 0 / 0) 142.5px,
+      rgb(255 255 255 / 0) 186.5px,
+      rgb(255 255 255 / 0.011) 189px,
+      rgb(255 255 255 / 0) 191.5px,
+      rgb(0 0 0 / 0) 234px,
+      rgb(0 0 0 / 0.016) 236px,
+      rgb(0 0 0 / 0) 238px,
+      rgb(0 0 0 / 0) 276.5px,
+      rgb(0 0 0 / 0.006) 278px,
+      rgb(0 0 0 / 0) 279.5px,
+      rgb(255 255 255 / 0) 319px,
+      rgb(255 255 255 / 0.012) 321px,
+      rgb(255 255 255 / 0) 323px,
+      rgb(0 0 0 / 0) 363.5px,
+      rgb(0 0 0 / 0.009) 366px,
+      rgb(0 0 0 / 0) 368.5px,
+      rgb(0 0 0 / 0) 397px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='940'%3E%3Cfilter id='m' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.008' numOctaves='5' seed='17' stitchTiles='stitch' result='n'/%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 0 0 0 0 0 0.03 0 0 0 0 0.12 1 0 0 0 0' result='k'/%3E%3CfeComponentTransfer in='k' result='d'%3E%3CfeFuncA type='table' tableValues='0 0 0.045'/%3E%3C/feComponentTransfer%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0' result='v'/%3E%3CfeComponentTransfer in='v' result='l'%3E%3CfeFuncA type='table' tableValues='0.05 0 0'/%3E%3C/feComponentTransfer%3E%3CfeMerge%3E%3CfeMergeNode in='d'/%3E%3CfeMergeNode in='l'/%3E%3C/feMerge%3E%3C/filter%3E%3ClinearGradient id='mf' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23000'/%3E%3Cstop offset='0.13' stop-color='%23fff'/%3E%3Cstop offset='0.87' stop-color='%23fff'/%3E%3Cstop offset='1' stop-color='%23000'/%3E%3C/linearGradient%3E%3Cmask id='mm'%3E%3Crect width='420' height='940' fill='url(%23mf)'/%3E%3C/mask%3E%3Crect width='420' height='940' filter='url(%23m)' mask='url(%23mm)'/%3E%3C/svg%3E");
+  background-size:
+    100% var(--paper-crease-height, 2600px),
+    100% 100%,
+    420px 620px,
+    397px 100%,
+    420px 940px;
+  background-repeat: repeat-y, no-repeat, repeat, repeat-x, repeat;
+
+  /* Torn top and bottom, flat sheet in between. Both edges come from
+     ../lib/paper.js as per-sheet mask images, so no two sheets tear alike; the
+     fallback is a clean edge rather than no edge at all. The flat layer overlaps
+     1px into each tear band rather than meeting it edge-to-edge, since the
+     antialiased tear leaves a hairline gap otherwise. */
+  -webkit-mask:
+    var(--paper-tear-top, linear-gradient(#000 0 0)) 0 0 / 100% var(--tear) no-repeat,
+    linear-gradient(#000 0 0) 0 calc(var(--tear) - 1px) / 100% calc(100% - var(--tear) * 2 + 2px) no-repeat,
+    var(--paper-tear-bottom, linear-gradient(#000 0 0)) 0 100% / 100% var(--tear) no-repeat;
+  mask:
+    var(--paper-tear-top, linear-gradient(#000 0 0)) 0 0 / 100% var(--tear) no-repeat,
+    linear-gradient(#000 0 0) 0 calc(var(--tear) - 1px) / 100% calc(100% - var(--tear) * 2 + 2px) no-repeat,
+    var(--paper-tear-bottom, linear-gradient(#000 0 0)) 0 100% / 100% var(--tear) no-repeat;
+
+  font-family: 'Receipt', var(--mono);
+  font-size: 13px;
+  font-weight: 900;
+  /* ROND rounds the dots off, the way an impact head does on paper. Kept low:
+     fully round dots leave too much white between them and the body text goes
+     faint, while square dots read as a pixel font. */
+  font-variation-settings: 'ROND' 30;
+  font-synthesis: none;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--receipt-ink);
+  /* Caps are applied here so the DOM text stays normal-case for screen
+     readers and for anyone copying it off the page. */
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet p,
+.sheet h1,
+.sheet h2,
+.sheet dl,
+.sheet ul {
+  margin: 0;
+}
+
+.rule {
+  height: 0;
+  margin: 12px 0;
+  border-top: 1px solid currentColor;
+  opacity: 0.75;
+}
+
+.rule--double {
+  height: 3px;
+  border-bottom: 1px solid currentColor;
+}
+
+/* A printed label/value pair: label left, value pushed to the right edge. */
+.slip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.slip-row dt::after,
+.slip-label::after {
+  content: ':';
+}
+
+.slip-row dd {
+  margin: 0;
+  text-align: right;
+}
+
+/* Reads as a printed address, not a link, until you reach for it. */
+.slip-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.slip-link__value,
+.slip-dotted {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+.slip-link__value {
+  text-align: right;
+}
+
+/* Thermal paper cannot really highlight, so a line darkens instead. Every
+   pressable line on every sheet is this one rule: `.slip-press` is the hook for
+   the ones that are not `.slip-link`s — the receipt's line items, which darken
+   when the scroll position selects one as well as under the pointer, and the
+   void slip's way home. */
+.slip-link:hover,
+.slip-link:focus-visible,
+.slip-press:hover,
+.slip-press:focus-visible,
+.slip-press.is-active {
+  background: rgb(0 0 0 / 0.07);
+  box-shadow: 0 0 0 4px rgb(0 0 0 / 0.07);
+}
+
+/* Printed furniture -------------------------------------------------------- */
+
+/* What every sheet prints regardless of what is rung up on it. Shared by the
+   home receipt, a project slip and the void stub, each of which sets only what
+   is genuinely its own: how wide its mark is, how big its name prints, how tall
+   its bars are. */
+
+/* The mark burned at the top of a sheet. */
+.slip-mark {
+  display: block;
+  height: auto;
+  margin-inline: auto;
+  fill: currentColor;
+}
+
+/* The mark is pressable -- it blinks -- so it is a button. The wrapper is
+   nothing but a hit area: the mark inside keeps its own width and its own
+   centring, and the focus ring comes from the global :focus-visible rule. */
+.bear-blink {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+/* The small spaced line above a sheet's name. */
+.slip-kicker {
+  text-align: center;
+  letter-spacing: 0.22em;
+  opacity: 0.8;
+}
+
+/* A sheet's name, in the paper's own type rather than the page's heading type. */
+.slip-title {
+  font-family: inherit;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: inherit;
+}
+
+/* A printed list; the rows carry their own layout. */
+.slip-list {
+  list-style: none;
+  padding: 0;
+}
+
+/* The sign-off a till prints under the total. */
+.slip-thanks {
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+
+.slip-barcode {
+  display: block;
+  width: 100%;
+  fill: var(--receipt-ink);
+}
+
+/* The human-readable code under the bars. Must read exactly as encoded, so it
+   opts out of the sheet's caps. */
+.slip-code {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: none;
+}

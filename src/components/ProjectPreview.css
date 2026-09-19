@@ -1,0 +1,188 @@
+/* The one surface on the home page that is not printed: ordinary modern web
+   type, set against the receipt it previews. */
+
+/* Resets everything the receipt's dot-matrix type sets, in case a card is ever
+   set inside the sheet. */
+.preview {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-variation-settings: normal;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.preview__title {
+  margin: 0;
+  font-size: clamp(40px, 4.4vw, 64px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--text-h);
+  text-wrap: balance;
+}
+
+/* Laid out, never shown: it holds the finished title's line breaks. */
+.preview__rest {
+  visibility: hidden;
+}
+
+/* An empty plain inline: it takes no width and, unlike an inline-block, is no
+   break opportunity, so a half-typed word can never split across it. The bar is
+   drawn just past the last typed letter. */
+.preview__caret {
+  position: relative;
+}
+
+.preview__caret::after {
+  content: '';
+  position: absolute;
+  top: 0.12em;
+  left: 0.04em;
+  width: 0.08em;
+  height: 0.86em;
+  background: currentColor;
+  animation: preview-caret 0.9s steps(1) infinite;
+}
+
+/* Held solid while typing, so the bar never goes dark mid-word. Blinking picks
+   up again from its lit half the moment the title is done: a fresh animation,
+   not the old one resumed partway through its cycle. */
+.preview__caret.is-typing::after {
+  animation: none;
+}
+
+/* The same blink, twice and then gone. Restarting from its lit half rather than
+   resuming mid-cycle comes from the `animation: none` above: whatever the name,
+   coming back from none starts a fresh animation. */
+.preview__caret.is-done::after {
+  animation: preview-caret 0.9s steps(1) 2 forwards;
+}
+
+.preview__tail {
+  white-space: nowrap;
+}
+
+@keyframes preview-caret {
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.preview__desc {
+  margin: 18px 0 0;
+  max-width: 46ch;
+  font-size: 17px;
+  line-height: 1.5;
+  opacity: 0.78;
+  text-wrap: pretty;
+}
+
+/* As the head of a project page rather than a card on the home page: the title
+   is stepped down from the 64px it runs at there, because its column is now the
+   writeup's measure less the details slip and long titles ("Cooling Tower
+   Predictive Maintenance") stacked five lines deep at the larger size. The
+   description is the summary in place of the one-liner -- the writeup's lede,
+   so it is set as body text rather than dimmed caption. */
+.preview--heading .preview__title {
+  font-size: clamp(36px, 4.6vw, 56px);
+}
+
+.preview--heading .preview__desc {
+  max-width: none;
+  font-size: 19px;
+  line-height: 1.55;
+  opacity: 1;
+  color: var(--text-h);
+}
+
+.preview__media {
+  /* Short viewports cap the picture's width rather than its height, so the box
+     keeps its 16/10 shape: narrower than the landscape screen recordings, which
+     then lose a little off each side (where there is least to see) instead of
+     their top and bottom. */
+  max-width: calc(40vh * 16 / 10);
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgb(127 127 127 / 0.12);
+}
+
+.preview__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* Says where a click on the card goes. Right-aligned under the poster, so it
+   shares the poster's width cap to land on the same right edge. The underline
+   is on the words alone; the arrow is its own span so a hover on the card can
+   nudge it without moving the words. */
+.preview__cta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 0.4em;
+  max-width: calc(40vh * 16 / 10);
+  margin: 20px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.preview__cta-label {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.preview__cta-arrow {
+  display: inline-block;
+  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* The description and picture wait for the title to finish, then rise in. Keyed
+   on .is-active so the animation restarts each time the card is shown. */
+.preview.is-active .preview__desc,
+.preview.is-active .preview__media,
+.preview.is-active .preview__cta {
+  animation: preview-rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--type-ms);
+}
+
+.preview.is-active .preview__media {
+  animation-delay: calc(var(--type-ms) + 120ms);
+}
+
+.preview.is-active .preview__cta {
+  animation-delay: calc(var(--type-ms) + 240ms);
+}
+
+@keyframes preview-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview__caret::after {
+    display: none;
+  }
+
+  .preview.is-active .preview__desc,
+  .preview.is-active .preview__media,
+  .preview.is-active .preview__cta {
+    animation: none;
+  }
+
+  .preview__cta-arrow {
+    transition: none;
+  }
+}

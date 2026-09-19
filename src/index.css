@@ -4,8 +4,19 @@
   --bg: #fff;
   --border: #e4e4e7;
 
+  /* Receipt paper. The paper carries the theme; the ink stays near-black in
+     both, the way real paper and real thermal print do. Cool rather than cream:
+     thermal stock is optically brightened, and an OBA sheet throws back more
+     blue than falls on it, which is why a fresh receipt reads blue-white and a
+     cream one reads old. */
+  --receipt-paper: #fafbfc;
+  --receipt-ink: #000;
+
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
+
+  /* The page's top and bottom padding. */
+  --page-pad-block: 32px;
 
   font: 16px/1.5 var(--sans);
   color-scheme: light dark;
@@ -20,6 +31,12 @@
     --text-h: #fafafa;
     --bg: #18181b;
     --border: #3f3f46;
+
+    /* Dimmed rather than inverted: an inverted receipt stops reading as paper,
+       and a white one is a flashbang against this background. The same stock
+       with the light taken off it, so it dims cool rather than warming into
+       cream on the way down. */
+    --receipt-paper: #c5c7c9;
   }
 }
 
@@ -36,30 +53,17 @@ body {
 #root {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--page-pad-block) 24px;
 }
 
+/* Every heading the app ships sets its own size and weight -- the printed ones
+   from the receipt face, the project title from its own clamp -- so only the
+   things they all agree on live here. */
 h1,
-h2,
-h3 {
+h2 {
   color: var(--text-h);
   line-height: 1.2;
   margin: 0 0 12px;
-}
-
-h1 {
-  font-size: 40px;
-}
-
-h2 {
-  font-size: 22px;
-  font-weight: 500;
-}
-
-h3 {
-  font-size: 16px;
-  font-weight: 400;
-  color: var(--text);
 }
 
 p {
@@ -70,17 +74,64 @@ a {
   color: inherit;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  background: none;
-  border: 1px solid var(--border);
-  /* border-radius: 6px; */
-  padding: 8px 14px;
-  margin: 16px 8px 0 0;
-  cursor: pointer;
+/* Accessibility utilities -------------------------------------------------- */
+
+/* Off-screen for the eye, still in the accessibility tree and still read. Uses
+   the clip-path/1px-box form rather than display:none or visibility:hidden,
+   both of which remove the text from screen readers as well. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  /* Chrome applies text-transform when it computes an accessible name, so text
+     inside the receipt would otherwise reach a screen reader in caps. There is
+     nothing here for a reader to look at, so the transform has no job to do and
+     only risks the caps being spelled out. */
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-button:hover {
-  border-color: var(--text);
+/* Focus ------------------------------------------------------------------- */
+
+/* currentColor rather than a fixed hue, because focus lands on two very
+   different surfaces here: the page, which flips with the colour scheme, and
+   the receipt paper, which stays a pale stock in both. A fixed ring would be low
+   contrast on one of them; the text colour is by definition legible on
+   whatever it is printed on. */
+:focus-visible {
+  outline: 3px solid currentColor;
+  outline-offset: 2px;
+  /* A halo in the surface colour, so the ring still separates from a dark
+     background image (the receipt's grain and creases). */
+  box-shadow: 0 0 0 5px rgb(255 255 255 / 0.55);
+}
+
+/* <main> takes focus from the router after a route change, so that a screen
+   reader is put at the top of the new page. It is not something the reader
+   tabbed to, so it should not draw a ring. */
+[tabindex='-1']:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+}
+
+/* Motion ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

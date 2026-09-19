@@ -1,0 +1,69 @@
+/* A void slip: the same paper as the home receipt (../styles/paper.css), torn
+   short. Nothing was rung up, so there is nothing to print between the header
+   and the sign-off. */
+
+.notfound {
+  display: flex;
+  justify-content: center;
+  padding: clamp(24px, 8vh, 72px) 0 48px;
+}
+
+.notfound__paper {
+  width: 100%;
+  /* Narrower than the 400px receipt and the project slip — this is the stub a
+     till spits out when the item does not scan. */
+  max-width: 320px;
+  min-width: 0;
+}
+
+.notfound__slip {
+  width: 100%;
+  padding: 20px 18px 16px;
+  text-align: center;
+}
+
+.notfound__logo {
+  width: 56px;
+  margin-bottom: 8px;
+}
+
+.notfound__title {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+/* The rows print flush left inside a centred slip, the way a till roll lays out
+   a label and its value. */
+.notfound__meta {
+  text-align: left;
+}
+
+.notfound__meta > div + div {
+  margin-top: 2px;
+}
+
+.notfound__path {
+  /* The row is a flex line; without this the path refuses to shrink below its
+     own longest unbreakable run and pushes the label off the paper. */
+  min-width: 0;
+  /* Must read exactly as it was typed, so it opts out of the sheet's caps. */
+  text-transform: none;
+  overflow-wrap: anywhere;
+}
+
+.notfound__note {
+  margin: 12px 0;
+  opacity: 0.85;
+}
+
+.notfound__home {
+  display: block;
+  margin: 12px 0 10px;
+  color: inherit;
+}
+
+.notfound__barcode {
+  height: 40px;
+  margin: 14px 0 4px;
+}
+

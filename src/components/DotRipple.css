@@ -1,0 +1,131 @@
+/* The loading ripple. The dots and their distances come from DotRipple.jsx;
+   everything about how the water moves is here. */
+
+.ripple {
+  /* The four dials, so a caller with a smaller box to fill can shrink the
+     field without touching the wave.
+       step   — centre to centre between dots
+       dot    — the printed dot itself
+       period — one drop to the next, most of which is flat water
+       travel — how long the crest takes to reach the rim. Shorter than the
+                period on purpose: the ring arrives and the surface settles
+                before the next drop, which is a droplet falling every couple
+                of seconds rather than a machine pulsing. */
+  --ripple-step: 9px;
+  --ripple-dot: 3.4px;
+  --ripple-period: 2s;
+  --ripple-travel: 1.25s;
+
+  display: grid;
+  grid-template-columns: repeat(var(--ripple-columns), var(--ripple-step));
+  grid-auto-rows: var(--ripple-step);
+  /* Centred in whatever box it is laid over, never stretched to fill it: the
+     dots are a fixed size, and a grid that fills the box would only spread
+     them apart until the ring stopped reading as one. */
+  place-content: center;
+  place-items: center;
+
+  /* It sits on top of media. A clip underneath it still has its controls. */
+  pointer-events: none;
+
+  /* Faded in rather than cut in. By the time this mounts the reader has
+     already been looking at an empty frame for a third of a second, and a
+     grid of dots appearing in one frame reads as a glitch in the page. */
+  animation: ripple-arrive 0.3s ease-out both;
+}
+
+.ripple__dot {
+  grid-column: var(--x);
+  grid-row: var(--y);
+  width: var(--ripple-dot);
+  height: var(--ripple-dot);
+  border-radius: 50%;
+  /* currentColor throughout: this prints on receipt paper in one place and on
+     the page's own background in another, and the ink differs between them. */
+  background: currentColor;
+
+  /* The surface at this dot, all four states scaled by how much of the wave
+     is left when it gets here (--a). The rim keeps a little of everything, so
+     the ring does not evaporate a dot short of the edge. */
+  --rest: calc(0.05 + var(--a) * 0.05);
+  --crest: calc(0.22 + var(--a) * 0.68);
+  --trough: calc(var(--rest) * 0.35);
+  --crest-size: calc(0.85 + var(--a) * 0.5);
+
+  opacity: var(--rest);
+  transform: scale(0.6);
+
+  /* Every dot runs the same wave. The delay is the whole trick: a dot at the
+     rim starts a full --ripple-travel after the centre, and 81 dots offset by
+     their own distance are a ring travelling outwards. */
+  animation: ripple-wave var(--ripple-period) ease-in-out infinite;
+  animation-delay: calc(var(--r) * var(--ripple-travel));
+}
+
+@keyframes ripple-wave {
+  /* Flat water, and most of the cycle is spent here. */
+  0%,
+  100% {
+    opacity: var(--rest);
+    transform: scale(0.6);
+  }
+
+  /* The crest passing through. */
+  9% {
+    opacity: var(--crest);
+    transform: scale(var(--crest-size));
+  }
+
+  /* The trough behind it. Water pulls below the line before it settles, and
+     without the dip each dot reads as a lamp blinking rather than a surface
+     being displaced. */
+  24% {
+    opacity: var(--trough);
+    transform: scale(0.45);
+  }
+
+  40% {
+    opacity: var(--rest);
+    transform: scale(0.6);
+  }
+}
+
+@keyframes ripple-arrive {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ripple-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No wave travelling across the field, which is the part of this that a
+     reader who asked for less motion is asking not to be given. The grid holds
+     the shape a single crest would have made — a bullseye, densest in the
+     middle — and the whole of it breathes instead, slowly and in place, so it
+     still reads as something in progress rather than a printed decoration. */
+  .ripple {
+    animation:
+      ripple-arrive 0.3s ease-out both,
+      ripple-breathe 2.6s ease-in-out 0.3s infinite;
+  }
+
+  .ripple__dot {
+    animation: none;
+    opacity: var(--crest);
+    transform: scale(var(--crest-size));
+  }
+}

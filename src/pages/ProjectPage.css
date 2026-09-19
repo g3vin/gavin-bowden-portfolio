@@ -1,65 +1,177 @@
+/* The page opens on the same card the home page previews a project with
+   (../components/ProjectPreview.css), then the writeup in ordinary web type,
+   and ends on paper (../styles/paper.css): the tag that prints at the end. */
+
 .project {
-  max-width: 80ch;
+  padding-bottom: 32px;
+}
+
+/* Head --------------------------------------------------------------------- */
+
+/* Title and summary on the left, the details slip beside them. The head sits
+   in the writeup's own box -- 68ch centred, at the same 17px so the two
+   measures agree -- rather than running on to the page's right edge, so the
+   slip stops on the same line as the prose and the figures below it instead of
+   hanging out in the margin on a line nothing else uses. What that costs the
+   title column comes off the slip and the gap, not off the text.
+   Below the breakpoint the slip drops under the summary. */
+.project__head {
+  --slip-w: 264px;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--slip-w);
+  gap: 36px;
+  align-items: start;
+  max-width: 68ch;
   margin: 0 auto;
-  padding-bottom: 64px;
+  padding-top: 20px;
+  font-size: 17px;
 }
 
-.project__back {
-  font-size: 14px;
-  text-decoration: none;
+/* Lined up with the title's cap height rather than the top of its box, and
+   printed a beat after the page arrives, once the title is mostly typed. */
+.project-slip__paper {
+  margin-top: 14px;
+  animation: preview-rise 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) 0.45s both;
 }
 
-.project__back:hover {
-  color: var(--text-h);
+/* A slip is a character grid: the width it is set to, less this padding, over
+   the advance of one 12px dot-matrix character, is the number of columns it has
+   to print in. 264px less 32px of padding is ~29 columns -- close enough to the
+   32 a narrow till roll prints that the values below read as printed lines
+   rather than as text in a box that happens to be narrow. Pull either number in
+   and the fields start breaking words. */
+.project-slip {
+  padding: 20px 16px 16px;
+  font-size: 12px;
 }
 
-.project__title {
+/* The project's dot-matrix mark, burned at the top of the slip. */
+.project-slip__logo {
+  width: 64px;
+  margin: 0 auto 12px;
+}
+
+/* A value prints beside its label while it fits on the line, and drops onto its
+   own full-width line when it does not -- the way a till prints a long item
+   description under its price column rather than down a gutter beside it. That
+   is the whole of the rule below: the row wraps, and each value is allowed its
+   max-content width capped at the line. A value wider than the space left
+   beside its label therefore reports a hypothetical width of the whole line,
+   does not fit, and takes the next line to itself, where it wraps inside the
+   full measure. Nothing here has to know which fields are the long ones.
+
+   Before this, a value was locked into the ~18 columns left over beside its
+   label and broke mid-word to fit ("PURDUEARCHERY.CLU / B"); on its own line it
+   has all ~29. */
+.project-slip__fields .slip-row {
+  flex-wrap: wrap;
+}
+
+.project-slip__fields dt {
+  flex-shrink: 0;
+}
+
+.project-slip__fields dd {
+  flex: 0 0 auto;
+  max-width: 100%;
+  /* Flush left once it is on a line of its own, which is where all but the
+     shortest values end up. A one-line value still sits against the label's
+     right edge -- justify-content does that -- so this only ever governs the
+     rag of a value that wrapped. */
+  text-align: left;
+  /* break-word, not anywhere: a word breaks only when it cannot fit the full
+     measure on its own, which at this width nothing does. `anywhere` breaks at
+     the first opportunity that avoids overflow, which is what was splitting a
+     domain that had room to print whole one line lower. */
+  overflow-wrap: break-word;
+}
+
+/* Rows are two and three lines tall now, so they need more between them than
+   the 4px that separated single lines. */
+.project-slip__fields .slip-row + .slip-row {
+  margin-top: 10px;
+}
+
+.project-slip__link {
+  display: block;
+  width: fit-content;
+}
+
+.project-slip__link + .project-slip__link,
+.project-slip li + li {
+  margin-top: 4px;
+}
+
+@media (max-width: 860px) {
+  .project__head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+  }
+
+  .project-slip__paper {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-slip__paper {
+    animation: none;
+  }
+}
+
+/* Attachment -------------------------------------------------------------- */
+
+/* The measure lives here rather than on .blocks. .blocks keeps its own 68ch, which
+   resolves against this same 17px and is therefore a no-op — ContentBlocks is
+   untouched and stays that way. */
+.project__attachment {
+  max-width: 68ch;
+  margin: 0 auto;
+  font-size: 17px;
+}
+
+/* The blocks already carry `margin: 48px auto 0`, which is the gap they need
+   from the head above, so nothing here has to reach into them. */
+
+/* Footer slip ------------------------------------------------------------- */
+
+.project-footer__paper {
+  max-width: 400px;
+  margin: 72px auto 0;
+}
+
+.project-footer {
+  padding: 20px 20px 16px;
+}
+
+.project-footer__barcode {
+  height: 52px;
+  margin-bottom: 4px;
+}
+
+.project-footer__code {
+  letter-spacing: 0.14em;
+  overflow-wrap: anywhere;
+}
+
+.project-footer__thanks {
   margin-bottom: 8px;
 }
 
-.project__summary {
-  font-size: 18px;
-  margin-bottom: 24px;
+.project-footer__next {
+  margin-top: 4px;
 }
 
-.project__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 32px;
-  margin: 0;
-  padding: 16px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
+/* Compact layout ---------------------------------------------------------- */
 
-.project__meta dt {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  opacity: 0.7;
-  margin-bottom: 2px;
-}
-
-.project__meta dd {
-  color: var(--text-h);
-  margin: 0;
-}
-
-.project__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.project__links a {
-  font-size: 14px;
-  text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 14px;
-}
-
-.project__links a:hover {
-  border-color: var(--text);
+/* A slip is a character grid, so its measure comes from font-size and padding.
+   The same step the home receipt takes, for the same reason. */
+@media (max-width: 420px) {
+  .project-footer {
+    font-size: 12px;
+    padding: 18px 14px 14px;
+  }
 }

@@ -2,12 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Portfolio · Gavin Bowden</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon-dots.svg" />
+    <link rel="icon" type="image/png" href="/favicon-dots.png" />
+    <link rel="apple-touch-icon" href="/favicon-dots.png" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)" />
+
+    <!-- Tags that are the same on every page. Everything that varies by URL
+         comes from headTags() in src/lib/seo.js: scripts/prerender.js writes
+         it in place of the marker below, and src/lib/head.js keeps it current
+         after a client-side navigation. -->
+    <title>Gavin Bowden</title>
+    <meta name="author" content="Gavin Bowden" />
+    <meta property="og:site_name" content="Gavin Bowden" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!--app-head-->
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Filled at build time with the fully rendered page, so a crawler, a
+         link unfurler, or a reader with JavaScript off gets the real content
+         and the real links rather than an empty div. -->
+    <div id="root"><!--app-html--></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
