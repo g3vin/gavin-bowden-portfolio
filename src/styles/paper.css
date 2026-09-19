@@ -250,7 +250,16 @@
   padding: 0;
   border: 0;
   background: none;
+  /* A button does not inherit colour -- the UA hands it `buttontext`, which
+     iOS resolves to the system blue and the mark, burned in currentColor,
+     dutifully turns blue with it. It takes the sheet's ink like everything
+     else printed on the paper. */
+  color: inherit;
   cursor: pointer;
+  /* The hit area is the full width of the sheet, so the tap highlight a phone
+     paints over it is a grey slab the width of the paper. The blink is its own
+     answer to being pressed. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* The small spaced line above a sheet's name. */
