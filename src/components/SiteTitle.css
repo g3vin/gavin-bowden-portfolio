@@ -1,16 +1,32 @@
+/* Block-level (not inline-flex) so it spans the page width and the existing
+   justify-content keeps the title centred at every breakpoint. */
 .site-title {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  display: flex;
+  justify-content: center;
   margin-bottom: 12px;
 }
 
-.site-title h3 {
-  font-weight: bold;
-  margin-bottom: 0;
+/* The anchor for the back arrow below. Sized to "gavinbowden.me" alone —
+   the arrow is positioned outside this box, so it never widens it and never
+   pulls the centred name off centre. */
+.site-title__link {
+  position: relative;
+  text-decoration: none;
 }
 
-.site-title a {
-  text-decoration: none;
+/* Carries the weight the <h3> used to, now that this is a span and inherits
+   nothing from the heading rules. */
+.site-title__name {
+  color: var(--text-h);
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+/* Sits to the left of the link's own box rather than before it in flow, so it
+   never shifts where "gavinbowden.me" is centred — on project pages, where it
+   appears, the name still lands exactly where it does everywhere else. */
+.site-title__back {
+  position: absolute;
+  right: 100%;
+  margin-right: 6px;
 }

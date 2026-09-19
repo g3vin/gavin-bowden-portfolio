@@ -1,23 +1,86 @@
+/* Section labels, printed. The dot-matrix face and the printed rule are the only
+   two receipt references in the body copy — everything else stays web type. */
 .block__heading {
-  font-size: 20px;
-  margin: 40px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 48px 0 14px;
+  font-family: 'Receipt', var(--mono);
+  font-size: 14px;
+  font-weight: 900;
+  font-variation-settings: 'ROND' 30;
+  font-synthesis: none;
+  letter-spacing: 0.12em;
+  /* Caps in CSS, so the DOM text stays normal-case for screen readers and for
+     anyone copying it off the page. */
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+/* The perforation runs out to the measure from wherever the label ends. Drawn as
+   actual dots on a fixed pitch rather than a dashed border, so it reads as the
+   same print head as the type beside it, and in ink rather than --border, which
+   is a hairline grey meant for boxes and all but vanishes at this weight. */
+.block__heading::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 3px;
+  /* A circle rather than `border-style: dotted`, which Chrome renders square
+     and Firefox round. */
+  background-image: radial-gradient(circle, currentColor 1.1px, transparent 1.3px);
+  background-size: 5px 3px;
+  background-repeat: repeat-x;
+  opacity: 0.65;
 }
 
 .block__text {
-  margin: 0 0 16px;
+  margin: 0 0 18px;
 }
 
 .block__list {
-  margin: 0 0 16px;
-  padding-left: 20px;
+  list-style: none;
+  margin: 0 0 18px;
+  padding-left: 0;
 }
 
 .block__list li {
-  margin-bottom: 6px;
+  position: relative;
+  padding-left: 22px;
+  margin-bottom: 8px;
+}
+
+/* A till roll prints its bullets from the same dot head as its text. */
+.block__list li::before {
+  content: '+';
+  position: absolute;
+  left: 0;
+  font-family: 'Receipt', var(--mono);
+  font-weight: 900;
+  font-variation-settings: 'ROND' 30;
+  font-synthesis: none;
+  /* Printed at the same strength as the line it marks; dimming it made the
+     dot-matrix glyph read as a smudge. */
+  color: var(--text-h);
 }
 
 .figure {
-  margin: 24px 0;
+  margin: 28px 0;
+}
+
+/* Wraps the picture or the clip, and exists only to give the loading ripple
+   something to be positioned against. It takes its height from the media
+   inside it, which already carries an aspect ratio, so the frame is the right
+   size before a byte of the media has arrived — the ripple is laid over a box
+   that is not going to move, and taking it away shifts nothing. */
+/* Square and unclipped: the .window or .phone around it owns the shape, and
+   clips the recording to it. */
+.figure__frame {
+  position: relative;
+}
+
+.figure__loading {
+  position: absolute;
+  inset: 0;
 }
 
 .figure__img {
@@ -25,31 +88,111 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  border: 1px solid var(--border);
-  background: linear-gradient(160deg, var(--border), var(--bg));
 }
 
 .figure__img--contain {
   object-fit: contain;
 }
 
+/* With the native controls gone the clip itself is the play/pause button, from
+   the pointer and from the keyboard. */
 .figure__video {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: contain;
-  border: 1px solid var(--border);
-  background: linear-gradient(160deg, var(--border), var(--bg));
+  cursor: pointer;
 }
 
-.figure__video--portrait {
+.figure__video:focus-visible {
+  outline: 2px solid var(--text-h);
+  outline-offset: -2px;
+}
+
+/* Clips sit in a macOS window: a title bar with the three traffic lights over
+   the recording, and a soft drop shadow lifting the whole thing off the page. */
+.window {
+  --window-bar: #e8e8ea;
+  --window-edge: rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+  /* 16px rather than a tighter 12px: the recordings keep the browser's own
+     rounded bottom corners, and anything less lets their black show through. */
+  border-radius: 16px;
+  background: var(--window-bar);
+  box-shadow:
+    0 0 0 1px var(--window-edge),
+    0 2px 3px rgb(0 0 0 / 0.18),
+    0 8px 16px rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .window {
+    --window-bar: #2c2c2f;
+    --window-edge: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.window__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+}
+
+.window__light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+}
+
+.window__light--close {
+  background: #ff5f57;
+}
+
+.window__light--min {
+  background: #febc2e;
+}
+
+.window__light--max {
+  background: #28c840;
+}
+
+/* A little more air under the window, so the caption clears its shadow. */
+.window + .figure__caption,
+.phone + .figure__caption {
+  margin-top: 16px;
+}
+
+/* Vertical media takes an iPhone screen's shape: its 9 : 19.5 ratio and its
+   display corner radius, about 14% of the screen's width. The radius is given
+   as width % / height %, so it stays circular at any size. The phone owns the
+   width rather than the media, so the ripple laid over a phone recording covers
+   the recording and not the column beside it. */
+.phone {
   max-width: 320px;
   margin: 0 auto;
+  overflow: hidden;
+  border-radius: 14% / 6.46%;
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 2px 3px rgb(0 0 0 / 0.18),
+    0 8px 16px rgb(0 0 0 / 0.12);
 }
 
+.phone .figure__img,
+.phone .figure__video {
+  aspect-ratio: 9 / 19.5;
+  object-fit: cover;
+}
+
+/* Deliberately plain: a caption is reader text, not a printed label. */
 .figure__caption {
-  font-size: 13px;
-  margin-top: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
   opacity: 0.8;
 }
 

@@ -1,0 +1,362 @@
+/* The paper itself — tear edges, grain, dot-matrix type — lives in
+   ../styles/paper.css, shared with the slips on a project page. */
+
+.receipt-section {
+  /* Query container for --preview-w below. Its inline size is the real content
+     box, which is what makes the panel width immune to scrollbar width. */
+  container-type: inline-size;
+  /* Scales with the window so a short viewport keeps the first project rows
+     above the fold, while a tall one gets room to breathe. */
+  padding-top: clamp(20px, 5vh, 56px);
+  padding-bottom: 24px;
+}
+
+/* The row is always laid out in its open shape — paper on the left, panel at
+   its full width on the right. Closed, the paper is slid right by half the
+   panel, which puts it back in the centre of the page, and the panel is merely
+   invisible beside it. Nothing about the geometry changes when the panel comes
+   out, so the whole movement is one transform and one opacity.
+   It used to be the panel's flex-basis that animated, growing from nothing. It
+   read the same, but it meant relaying out and repainting the entire 2600px
+   sheet — mask, drop-shadow, five background layers and a reflow of every line
+   of text — on each of the 25 frames of the slide, which is exactly the point
+   in the page where the reader is scrolling into the project list. That was the
+   stutter. */
+.receipt-section__layout {
+  /* The frame's proportions, its height ceiling, and the gap that separates it
+     from the paper, in one place: the panel draws its width from them, the media
+     its shape, so neither can disagree with the other. */
+  /* The sheet's width, named because the panel beside it is sized off it. */
+  --receipt-w: 400px;
+
+  /* The preview card's own measure: wide enough for the big title to run two
+     or three words to a line. */
+  --preview-card-w: 520px;
+  --preview-gap: 48px;
+
+  /* The panel gets whatever the receipt leaves, but never more than its
+     contents can use: the card, plus the gap. Claiming
+     the whole remainder would park the surplus inside the column as dead space
+     on the right, leaving the row exactly container-wide with nothing for
+     justify-content to centre — the paper pinned to the left edge while the
+     image floated well clear of the right one. Capped, the row is narrower than
+     the page and the leftover splits evenly on both sides.
+     Measured in cqw against .receipt-section rather than in vw: 100vw counts the
+     classic scrollbar and would compute the row wider than the page below
+     1040px. A plain percentage cannot be used either, since it would resolve
+     against a column that is zero-wide while closed; cqw refers to the query
+     container instead. */
+  --preview-w: min(calc(100cqw - var(--receipt-w)), calc(var(--preview-card-w) + var(--preview-gap)));
+
+  /* --preview-in, when the panel is handed the page, is set inline from
+     ENTER_DELAY_MS in ReceiptIndex.jsx, which holds the title's typing for the
+     same beat. */
+
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.receipt-paper {
+  flex: 0 1 var(--receipt-w);
+  max-width: 100%;
+  /* Half the panel's width to the right is dead centre of the page: the row is
+     receipt + panel wide and centred, so this offset cancels the panel exactly.
+     Bounded by the row it sits in, so it can never overflow the page. */
+  transform: translateX(calc(var(--preview-w) / 2));
+  /* Eased out rather than in-and-out: the move starts well before the first
+     project is live, so it should leave promptly and arrive gently.
+     The delay is the closing half of the sequence -- the card fades out first,
+     and only then does the paper come back to centre. Opening cancels it
+     (below), so the paper leaves immediately and the card waits for it instead. The two directions are mirror images. */
+  /* The opening half of this — 0.34s, no delay — is the slide PANEL_SLIDE_MS in
+     ReceiptIndex.jsx holds the settle off for, so the reader gets the receipt's
+     move on its own instead of the page scrolling underneath it. */
+  transition: transform 0.34s cubic-bezier(0.22, 0.61, 0.36, 1) var(--slide-delay, 0.26s);
+  /* Two jobs. It keeps the flex row taller than the receipt so the sticky panel
+     still has a containing block near the page bottom, and it is the run-out the
+     ending needs: without it the page stops scrolling only ~60px after the last
+     line item, leaving nowhere for the panel to retire and the receipt to come
+     back to centre for the totals and the barcode. */
+  padding-bottom: max(24px, 22vh);
+}
+
+.is-open .receipt-paper {
+  transform: none;
+  --slide-delay: 0s;
+}
+
+.receipt {
+  width: 100%;
+  padding: 26px 24px 20px;
+}
+
+/* Sized in px rather than by the grid so the dots stay in step with the body
+   text's own dots. */
+.receipt__logo {
+  width: 116px;
+  margin-bottom: 14px;
+}
+
+.receipt__store {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.receipt__tagline {
+  margin-top: 6px;
+  text-align: center;
+  line-height: 1.45;
+}
+
+/* Line items ------------------------------------------------------------- */
+
+/* Rows settle on the focus line when the reader comes to rest near one, but the
+   settling is done from ReceiptIndex.jsx rather than by scroll-snap. CSS
+   proximity snapping picks its own range — about a third of the viewport in
+   Blink — and knows nothing about which way the reader was going, which made
+   both ends of the list lurch. There is no snap position at the top of the
+   page, so a few pixels of scroll down from it put the first row's position
+   nearest and hauled the page a couple of hundred pixels onto project one. And
+   the page end needed an end-aligned snap position of its own, or scrolling to
+   the bottom got pulled back onto the last line item far enough to cut off the
+   footer — which in turn meant easing back up off the bottom was dragged down
+   onto the footer before being flung up to the last project.
+   The JS settle has a fixed, short range and only ever moves in the direction
+   the reader was already travelling, so it finishes their scroll instead of
+   reversing it. See settleTo() and settleTarget() there.
+
+   scroll-padding-top stays: it keeps the browser's own focus scrolling (tabbing
+   into a row) landing near the focus line instead of at the bottom edge of the
+   window, so the nudge that follows is a short one. The ratio is not restated
+   here -- ReceiptIndex.jsx owns FOCUS_RATIO and writes it out as --focus-ratio,
+   so the two cannot drift. The fallback is only for a reader with no JS, who
+   gets no settle either way.
+   Scoped with :has so it cannot reach a project page; where :has is unsupported
+   the page simply scrolls freely. */
+html:has(.receipt__items) {
+  scroll-padding-top: calc(var(--focus-ratio, 0.42) * 100vh);
+}
+
+.receipt__items {
+  margin-top: 2px;
+}
+
+/* Each item owns about twice the scroll it used to, so a single flick moves the
+   reader a project or two instead of past all seven. Margin rather than padding:
+   the gap stays outside the box whose top the settle aligns, so a settled row
+   parks its first printed line on the focus line rather than the empty space
+   above it. */
+.receipt__items li + li {
+  margin-top: 40px;
+}
+
+/* The item name takes the full measure on its own line and the SKU/value pair
+   sits underneath, the way a real till roll prints it. A single two-column row
+   would let a long value squeeze the name into a one-word-per-line column. */
+.receipt__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.receipt__name {
+  grid-column: 1 / -1;
+  /* Pinned, so the compact arrow placed on this row does not push the name
+     down to the next one. */
+  grid-row: 1;
+}
+
+/* The compact layout's stand-in for the side panel: says a tap on the row goes
+   somewhere. Shares the name's grid cell rather than taking a column of its
+   own, which would let the value line below squeeze the name down to a word
+   per line; the name leaves room for it instead (see the compact block). */
+.receipt__go {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.receipt__sku {
+  opacity: 0.8;
+}
+
+/* A project still being built: a boxed tag after the name, the way a till
+   flags an item on back order. Inline, so it wraps with the name. */
+.receipt__status {
+  display: inline-block;
+  margin-left: 0.6em;
+  padding: 0 0.35em;
+  border: 1px solid currentColor;
+  font-size: 0.85em;
+  line-height: 1.35;
+  vertical-align: 0.08em;
+  white-space: nowrap;
+}
+
+/* Indented under the item it belongs to, the way a till roll prints the
+   modifiers on a line. Lighter than the item itself: it is detail, not the
+   name. Wrapping is fine — receipts wrap — so it takes the full measure. */
+.receipt__stack {
+  grid-column: 1 / -1;
+  margin-left: 1.6em;
+  opacity: 0.72;
+}
+
+.receipt__impact {
+  text-align: right;
+  white-space: nowrap;
+  /* A 1fr track floors at min-content; without this the nowrap value sets that
+     floor to the whole string and pushes the grid past the paper. */
+  min-width: 0;
+}
+
+.receipt__grand {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.receipt__policy {
+  margin: 14px 0 12px;
+  text-align: center;
+}
+
+.receipt__policy-title {
+  letter-spacing: 0.16em;
+}
+
+.receipt__policy p + p {
+  opacity: 0.85;
+}
+
+.receipt__barcode {
+  height: 46px;
+  margin: 18px 0 4px;
+}
+
+/* Preview panel ---------------------------------------------------------- */
+
+.receipt-preview {
+  /* Held at its open width at all times: it is the paper that moves, and a
+     column that never resizes is a column whose contents never reflow. No
+     overflow clipping: `overflow: hidden` would make this a scroll container
+     and silently kill `position: sticky` on the panel inside it. */
+  flex: 0 0 var(--preview-w);
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  /* visibility, not just opacity, so a closed panel costs nothing to paint. It
+     fades out first and is dropped once the paper has started back to centre. */
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    visibility 0s linear 0.26s;
+}
+
+.is-open .receipt-preview {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 0.2s ease var(--preview-in),
+    visibility 0s linear var(--preview-in);
+}
+
+/* Sticky by its top edge, not centred: the cards differ in height (a title of
+   one line or three, a longer description), and centring each one would start
+   every title typing from a different place. Pinned, they all begin at the same
+   point. The offset is half a typical full card above the midpoint — title,
+   description, and the poster, whose height tracks the viewport (see
+   .preview__media) — so the usual card still reads as centred. Held at its open
+   width so the copy does not reflow while the column animates. */
+.receipt-preview__inner {
+  box-sizing: border-box;
+  width: var(--preview-w);
+  padding-left: var(--preview-gap);
+  position: sticky;
+  top: max(24px, calc(50vh - 150px - min(162px, 20vh)));
+}
+
+.receipt-preview__link {
+  display: block;
+  max-width: var(--preview-card-w);
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The panel is a link to the project: its call to action answers the pointer
+   anywhere on the card. */
+.receipt-preview__link:hover .preview__cta-label {
+  text-decoration-color: currentColor;
+}
+
+.receipt-preview__link:hover .preview__cta-arrow {
+  transform: translateX(4px);
+}
+
+/* Compact layout ---------------------------------------------------------- */
+
+/* Below this the paper and the preview crowd each other out of their measures.
+   The receipt carries every link and project on its own, so the panel goes. */
+@media (max-width: 800px) {
+  .receipt-preview {
+    display: none;
+  }
+
+  /* No panel to sit beside, so the paper is centred by the flex row itself and
+     the offset above would only push it off to the right. That headroom exists
+     only to give the sticky panel a containing block. */
+  .receipt-paper {
+    transform: none;
+    padding-bottom: 24px;
+  }
+
+  /* Nothing to dwell on either: a tap goes straight to the project. */
+  .receipt__items li + li {
+    margin-top: 20px;
+  }
+
+  /* Room for the arrow at the end of the name line. */
+  .receipt__name {
+    padding-right: 2ch;
+  }
+}
+
+/* The receipt is a character grid, so its measure comes almost entirely from
+   font-size and padding. Below these widths the SKU/value row cannot fit at
+   13px, and PURDUEARCHERY.CLUB is an 18-character unbreakable word, so wrapping
+   alone is not enough — the type has to come down with it. */
+@media (max-width: 420px) {
+  .receipt {
+    font-size: 12px;
+    padding: 22px 14px 18px;
+  }
+
+  .receipt__impact {
+    white-space: normal;
+    /* Last-resort guarantee: nothing can force the grid past the paper, however
+       long a future impact value turns out to be. */
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 360px) {
+  .receipt {
+    font-size: 11px;
+  }
+
+  .receipt__store {
+    font-size: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The paper's slide and the card's arrival both become instant, and the
+     sequencing between them stops mattering. */
+  .receipt-paper,
+  .receipt-preview {
+    transition: none;
+  }
+}
