@@ -100,45 +100,67 @@
   margin: 0 auto 12px;
 }
 
-/* A value prints beside its label while it fits on the line, and drops onto its
-   own full-width line when it does not -- the way a till prints a long item
-   description under its price column rather than down a gutter beside it. That
-   is the whole of the rule below: the row wraps, and each value is allowed its
-   max-content width capped at the line. A value wider than the space left
-   beside its label therefore reports a hypothetical width of the whole line,
-   does not fit, and takes the next line to itself, where it wraps inside the
-   full measure. Nothing here has to know which fields are the long ones.
+/* The slip prints in two columns: the labels down the left, the values down
+   the right, every value starting on its label's own line and none of them
+   ever touching the labels.
 
-   Before this, a value was locked into the ~18 columns left over beside its
-   label and broke mid-word to fit ("PURDUEARCHERY.CLU / B"); on its own line it
-   has all ~29. */
+   The whole field list is one grid, not a grid per row, so the label column is
+   sized once -- `max-content`, which is the widest label on the slip -- and
+   STATUS / YEAR / IMPACT / ROLE / STACK all start their values at the same
+   column. The rows are `display: contents` so each dt and dd drops straight
+   into that grid; the row box itself prints nothing, so nothing is lost with
+   it. A gutter between the columns comes from column-gap, which unlike the
+   flex `justify-content` this replaces cannot be closed up by a value that
+   happens to be wide.
+
+   The value column is `minmax(0, 1fr)`: it takes the rest of the measure and a
+   long value wraps INSIDE it, which is the thing the rule below this one used
+   to solve by dropping the value onto a full-width line under its label. That
+   cost the column; it is a column now, so a value that does not fit takes a
+   second line of its own column instead. Of the ~29 columns the slip prints
+   (see .project-slip), the labels take about 7 and the gutter 1.5, which
+   leaves ~20 -- wider than the longest word any field carries, so nothing
+   breaks mid-word. */
+.project-slip__fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 12px;
+  /* Rows run two and three lines tall, so they need more between them than the
+     4px that separated single lines. */
+  row-gap: 10px;
+}
+
 .project-slip__fields .slip-row {
-  flex-wrap: wrap;
+  display: contents;
 }
 
 .project-slip__fields dt {
-  flex-shrink: 0;
+  grid-column: 1;
 }
 
 .project-slip__fields dd {
-  flex: 0 0 auto;
-  max-width: 100%;
-  /* Flush left once it is on a line of its own, which is where all but the
-     shortest values end up. A one-line value still sits against the label's
-     right edge -- justify-content does that -- so this only ever governs the
-     rag of a value that wrapped. */
+  grid-column: 2;
+  margin: 0;
+  /* The column reads down its left edge; a value that wraps rags right. */
   text-align: left;
-  /* break-word, not anywhere: a word breaks only when it cannot fit the full
-     measure on its own, which at this width nothing does. `anywhere` breaks at
-     the first opportunity that avoids overflow, which is what was splitting a
-     domain that had room to print whole one line lower. */
+  /* break-word, not anywhere: a word breaks only when it cannot fit its column
+     on its own, which at this width nothing does. `anywhere` breaks at the
+     first opportunity that avoids overflow, which was splitting a domain that
+     had room to print whole. */
   overflow-wrap: break-word;
 }
 
-/* Rows are two and three lines tall now, so they need more between them than
-   the 4px that separated single lines. */
-.project-slip__fields .slip-row + .slip-row {
-  margin-top: 10px;
+/* Link rows print like the fields above them: same two columns, same gutter.
+   Their labels are the one thing on the slip that can run long (a link is
+   titled by hand -- "The Data Mine -- Howmet Aerospace"), so the label column
+   is capped at half the measure rather than given its max-content: a short
+   label still sizes the column itself, and a long one wraps in place instead
+   of pushing the address off the sheet. */
+.project-slip .slip-link--row,
+.project-footer__next {
+  display: grid;
+  grid-template-columns: fit-content(50%) minmax(0, 1fr);
+  column-gap: 12px;
 }
 
 /* Link rows print like the fields above them, so they are spaced like the

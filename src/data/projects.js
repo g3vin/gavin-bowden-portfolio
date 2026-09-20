@@ -27,17 +27,29 @@ export const projects = [
     description:
       'A real-time number-calling system for 300+ person giveaway events with attendee tickets, a room display, and a staff control panel.',
     summary:
-      'Purdue\'s Boiler Book Club hands out free books and other book-related goodies to 300+ people at a time. We used to run it on paper numbers shouted across a room, plus a Google Form nobody remembered to fill in to track who claimed what. I replaced all of it with three synchronized screens: a ticket on every attendee\'s phone, a projected display for the room, and a control panel for staff.',
+      'Purdue\'s Boiler Book Club hands out free books and other book themed goodies to 300+ people at events. We originally used paper numbers that we\'d shout out in groups, and Google Form nobody ever remembered to fill in to track goodie stock. Now it\'s three screens reading one live document: a ticket on every attendee\'s phone, a projected display for the room, and a control panel for staff.',
     year: '2026',
     role: 'Solo — Purdue\'s Boiler Book Club',
     stack: ['React 19', 'Vite', 'Firebase', 'Cloud Functions', 'Discord OAuth'],
     links: [{ label: 'Source', href: 'https://github.com/BoilerBookClub/number-caller' }],
     poster: '/projects/event-pass-next-group.jpg',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'Why does a giveaway need a server?' },
       {
         type: 'text',
-        text: 'I like to think of a giveaway event like the DMV: everyone takes a number from that rolly ticket dispenser thing, and groups get called up to the front. Slowly. Very slowly. It makes sense why. Running it by hand means a clipboard, someone shouting over a crowded room, a paper list of who has already taken a book, and no way to answer the one question that actually matters: how many people are still waiting? Attendees lost their slips (even after many reminders to hold onto them), the inventory form was ignored, and nobody\'s memory of what number was up matched anybody else\'s. I replaced all of that with three screens that read and write the same live event document, so an attendee\'s ticket flips the instant staff call their number, and several staff members can run the same event from different devices without stepping on each other.',
+        text: 'A giveaway event is a DMV that gives you something nice at the end. Everyone takes a number off that rolly ticket dispenser thing, groups get called up to the front, and everybody else waits. Slowly. Very slowly.',
+      },
+      {
+        type: 'text',
+        text: 'It makes sense why. Run it by hand and you get a clipboard, one person shouting over a crowded room, and a paper list of who has already taken a book. What you don\'t get is an answer to the only question anyone in that room is actually asking: how many people are still ahead of me?',
+      },
+      {
+        type: 'text',
+        text: 'Nobody knew. Not the staff, not the attendees, and definitely not the Google Form.',
+      },
+      {
+        type: 'text',
+        text: 'Attendees lost their slips too, even after many reminders to hold onto them, and nobody\'s memory of what number was up matched anybody else\'s. So I replaced all of it with three screens that read and write the same live event document. An attendee\'s ticket flips the instant staff call their number, and several staff members can run the same event from different devices without stepping on each other.',
       },
       {
         type: 'video',
@@ -46,7 +58,7 @@ export const projects = [
         ratio: '1280 / 758',
         caption: 'The room display the moment a group is called: the round, the numbers that are up, the rotating check-in code counting down to its next rotation, and the join feed down the left. A confetti animation and a chime go off the instant every ticket in a group flips to ready.',
       },
-      { type: 'heading', text: 'The three screens' },
+      { type: 'heading', text: 'Three screens, one document' },
       {
         type: 'list',
         items: [
@@ -65,7 +77,15 @@ export const projects = [
       { type: 'heading', text: 'How I built it' },
       {
         type: 'text',
-        text: 'The front end is React 19 and Vite, with Firebase behind it. Firestore holds a live event document with claims, queue, and feed collections. Everything the client isn\'t allowed to decide lives in 27 Cloud Functions: 21 callables, plus Firestore triggers, two scheduled jobs, and a crash-report endpoint. That split is basically the architecture. Numbers, membership, staff status, and eligibility all come from a verified token on the server, and the browser only chooses which screen to draw! To match the club\'s vibe, the UI is built on rough.js and its wired-elements, which give everything a hand-drawn sketchbook look. Yes, even the crash screen.',
+        text: 'The front end is React 19 and Vite, with Firebase behind it. Firestore holds a live event document with claims, queue, and feed collections. Everything the client isn\'t allowed to decide lives in 27 Cloud Functions: 21 callables, plus Firestore triggers, two scheduled jobs, and a crash-report endpoint.',
+      },
+      {
+        type: 'text',
+        text: 'That split is the architecture. Numbers, membership, staff status, and eligibility all come from a verified token on the server, and the browser only gets to pick which screen to draw.',
+      },
+      {
+        type: 'text',
+        text: 'To match the club\'s vibe, the UI is built on rough.js and its wired-elements, which give everything a hand-drawn sketchbook look. Even the crash screen.',
       },
       {
         type: 'video',
@@ -90,10 +110,14 @@ export const projects = [
         ratio: '1280 / 758',
         caption: 'The prize raffle on the projector. The wheel grows past screen height mid-spin so names passing the pointer stay readable from the back of the room.',
       },
-      { type: 'heading', text: 'The attendee is evil and wants to steal from us' },
+      { type: 'heading', text: 'The attendee is evil' },
       {
         type: 'text',
-        text: 'Every attendee is a signed-in user on a device I don\'t control, standing in a room where free books are being handed out. They will try anything to get extra prizes. Most of the structure and security follows from that assumption.',
+        text: 'Design assumption, stated plainly: every attendee is a signed-in user, on a device I don\'t control, standing in a room where free books are being handed out.',
+      },
+      {
+        type: 'text',
+        text: 'They will try anything. ANYTHING to get an extra book. Almost everything below is what taking that seriously looks like.',
       },
       {
         type: 'video',
@@ -110,10 +134,14 @@ export const projects = [
           'Filtered display names and avatar URLs on the server. Names go through a profanity and impersonation filter (sorry, nobody gets to be "admin"), and avatars have to come from Discord\'s CDN. A filter the client enforces is one direct callable away from being skipped, and the value ends up on a projector in front of a room.',
         ],
       },
-      { type: 'heading', text: 'When the floodgate explodes' },
+      { type: 'heading', text: 'Zero traffic, then everyone at once' },
       {
         type: 'text',
-        text: 'The load profile is zero traffic, then the entire user base hitting one document at once, then zero traffic again (what a fun problem). Number assignment runs in a transaction against the live event document that holds the counters, and a transactional read takes a lock. The catch: attendees who already had a number were going through that same transaction on every reload, retry, and ticket reopen, so they were contending with every brand-new check-in for no reason. Now a returning attendee gets two point reads and a lock-free batch, and only someone without a claim falls through to the transaction.',
+        text: 'The load profile is zero traffic, then the entire user base hitting one document at once, then zero traffic again. What a fun problem.',
+      },
+      {
+        type: 'text',
+        text: 'Number assignment runs in a transaction against the live event document that holds the counters, and a transactional read takes a lock. The catch turned out to be who else was taking that lock: attendees who already had a number were going through the same transaction on every reload, retry, and ticket reopen, contending with every brand-new check-in for no reason at all. Now a returning attendee gets two point reads and a lock-free batch, and only someone without a claim falls through to the transaction.',
       },
       {
         type: 'list',
@@ -124,10 +152,22 @@ export const projects = [
           'Caught the QR code being rebuilt from scratch on every render, in a component that re-renders once a second for its clock. Memoizing on the payload was a one-line fix worth 3.9 ms and 137 KB of garbage per render (measured on the old, bigger payload; more on that below).',
         ],
       },
-      { type: 'heading', text: 'The QR code bug' },
+      { type: 'heading', text: 'Error correction lied to me' },
       {
         type: 'text',
-        text: 'I knock the attendee\'s number out of the middle of their own QR code, which sounds fine, since error correction level H is advertised as surviving 30% damage. But that 30% is split across Reed-Solomon blocks, and each block corrects on its own. A hole in the middle is one contiguous blob that interleaving doesn\'t spread evenly, so the worst block took 16 damaged codewords when it could only fix 15. Every attendee numbered 100 or above had a ticket that couldn\'t be scanned (whoops). I compressed the payload from 207 bytes of JSON down to 105 bytes of pipe-separated fields, which dropped the code from version 16 to version 10, drew every module about 40% larger in the same box, and left the worst block at two thirds of its budget. The tests now measure damage per block against the same encoder react-qr-code uses, and a regression test asserts the old geometry still fails, so nobody can "simplify" it back.',
+        text: 'I knock the attendee\'s number out of the middle of their own QR code, which sounds completely fine, because error correction level H is advertised as surviving 30% damage. A hole in the middle is nowhere near 30% of the code. Sound perfect, right? You might as well skip this section.',
+      },
+      {
+        type: 'text',
+        text: 'Here\'s the issue: that 30% isn\'t one budget. It\'s split across Reed-Solomon blocks, and each block corrects on its own. A hole in the middle is one contiguous blob that interleaving doesn\'t spread evenly, so the worst block took 16 damaged codewords when it could only fix 15.',
+      },
+      {
+        type: 'text',
+        text: 'Every attendee numbered 100 or above had a ticket that couldn\'t be scanned. Whoops.',
+      },
+      {
+        type: 'text',
+        text: 'I compressed the payload from 207 bytes of JSON down to 105 bytes of pipe-separated fields, which dropped the code from version 16 to version 10, drew every module about 40% larger in the same box, and left the worst block at two thirds of its budget. The tests now measure damage per block against the same encoder react-qr-code uses, and a regression test asserts the old geometry still fails, so nobody can "simplify" it back.',
       },
       {
         type: 'video',
@@ -136,10 +176,10 @@ export const projects = [
         ratio: '894 / 1280',
         caption: 'A staff member checking off #301 from the control panel\'s camera scanner. The claim is marked for the round, and the attendee\'s ticket flips to "Item claimed" and hides its QR.',
       },
-      { type: 'heading', text: 'Tests, tests, and more tests (and deployment)' },
+      { type: 'heading', text: 'You can\'t debug it night of' },
       {
         type: 'text',
-        text: 'You can\'t debug anything on the night of an event (if you can, I salute you), which set the bar for what I had to verify beforehand. I ended up with 221 automated tests across four layers, a load-test harness, and a development loop that runs entirely offline.',
+        text: 'There\'s no debugging anything on the night of an event. If you can, I salute you. That set the bar for how much had to be true beforehand: 221 automated tests across four layers, a load-test harness, and a development loop that runs entirely offline.',
       },
       {
         type: 'list',
@@ -155,7 +195,15 @@ export const projects = [
       { type: 'heading', text: 'What I would do differently' },
       {
         type: 'text',
-        text: 'Most of the work above fixes things I got wrong the first time around. The lock contention, the 500-write ceilings, the too-narrow check-in window and the unscannable three-digit tickets were all discoverable before an event rather than during one. That\'s why the load test and the 300-person demo mode exist now, and why I\'d build them first next time. You live and learn.',
+        text: 'Most of the work above fixes something I got wrong the first time. The lock contention, the 500-write ceilings, the too-narrow check-in window, the unscannable three-digit tickets: every one of them was findable before an event rather than during one.',
+      },
+      {
+        type: 'text',
+        text: 'That\'s why the load test and the 300-person demo mode exist now, and why I\'d build them first next time.',
+      },
+      {
+        type: 'text',
+        text: 'It\'s still a DMV. The line still moves exactly as fast as the people at the front of it. But it moves, and everyone standing in it can finally see how far away they are to those sweet sweet free books.',
       },
     ],
   },
@@ -167,7 +215,7 @@ export const projects = [
     description:
       'Membership, QR practice check-in, pass sales, and the public website for Purdue\'s Archery Club, built on our Discord as the source of truth for identity.',
     summary:
-      'Purdue Archery Club used to run practice check-in off a paper sign-in sheet, with someone manually decrementing everyone\'s remaining practices in a spreadsheet. I built a Firebase app that logs members in with the Discord account the club already uses for everything else, checks them into practice with a QR scan, sells and tracks their passes, and lets officers edit the public website without a code deploy. It\'s been live at purduearchery.club since 2025.',
+      'Practice check-in used to be a paper sign-in sheet, plus someone manually subtracting from everyone\'s remaining practices in a spreadsheet. I built a Firebase app that signs members in with the Discord account the club already uses for everything else, checks them into practice with a QR scan, sells and tracks their passes, and lets officers edit the public website without a code deploy. Live at purduearchery.club since 2025.',
     year: '2025',
     role: 'Solo — Purdue University Archery Club',
     stack: ['React 18', 'React Router 6', 'Vite', 'Firebase', 'Cloud Functions', 'Firestore', 'Discord API', 'Resend'],
@@ -177,10 +225,22 @@ export const projects = [
     ],
     poster: '/projects/puac-front-page-poster.jpg',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'It started as a paper sign-in sheet' },
       {
         type: 'text',
-        text: 'Every club member is already on the club Discord. That\'s where practices get scheduled, where officers post, and where bans happen when someone needs to be removed. Rather than build a second identity system, I built the whole platform on top of it: just sign in with Discord. Everything downstream, like who\'s an officer, who\'s allowed in, and whose pass is active, reads off that one login. What started as "replace the paper sign-in sheet" grew into membership, QR check-in, pass sales pulled automatically off order emails, a staff dashboard, and a CMS for the public site: 27 Cloud Functions, about 4,800 lines of server code, and a lot of feature creep I regret nothing about.',
+        text: 'The original problem was a clipboard. A member shows up to practice, an officer writes down their name, and later an officer opens a spreadsheet and subtracts from their remaining practices by hand. It works, in the sense that it does eventually produce a number, but usually only after a month without updates.',
+      },
+      {
+        type: 'text',
+        text: 'The more useful thing I noticed is that the club had already solved identity without meaning to. Every member is on the club Discord. That\'s where practices get scheduled, where officers post, and where bans happen when someone needs to be removed.',
+      },
+      {
+        type: 'text',
+        text: 'So I didn\'t build a second identity system. Everything downstream, who\'s an officer, who\'s allowed in, whose pass is active, reads off one Discord login.',
+      },
+      {
+        type: 'text',
+        text: 'What started as "replace the paper sign-in sheet" grew into membership, QR check-in, pass sales pulled automatically off order emails, a staff dashboard, and a CMS for the public site: 27 Cloud Functions, about 4,800 lines of server code, and a lot of features I regret nothing about.',
       },
       {
         type: 'video',
@@ -189,7 +249,7 @@ export const projects = [
         ratio: '1280 / 744',
         caption: 'The public landing page. The calendar, pricing cards, and photo pile are all officer-editable, not hardcoded.',
       },
-      { type: 'heading', text: 'Membership & identity' },
+      { type: 'heading', text: 'Discord already knows who everyone is' },
       {
         type: 'list',
         items: [
@@ -208,10 +268,18 @@ export const projects = [
         ratio: '588 / 1280',
         caption: 'A member\'s /my-id pass. The QR encodes a random token, not anything derived from their account.',
       },
-      { type: 'heading', text: 'Practice attendance & QR check-in' },
+      { type: 'heading', text: 'A session that opens itself' },
       {
         type: 'text',
-        text: 'Practices already exist as scheduled events in the club Discord, so I didn\'t duplicate scheduling anywhere. A sync job pulls them in every 15 minutes and keeps the ones whose names read as a practice ("practice", "range night", "open range", "shoot night"), because nobody needs attendance tracked at a social. The scheduled practice and what actually happens that night are separate records on purpose, so a stale or missing Discord event never blocks check-in. A session opens itself on the first QR scan of the night (no "start" button to forget), and closes itself 15 minutes after the scheduled end, or 3 hours after that first scan if nothing was scheduled. Officers can also end one early.',
+        text: 'Practices already exist as scheduled events in the club Discord, so I didn\'t duplicate scheduling anywhere. A sync job pulls them in every 15 minutes and keeps the ones whose names read as a practice ("practice", "range night", "open range", "shoot night"), because nobody needs attendance tracked at a social.',
+      },
+      {
+        type: 'text',
+        text: 'The scheduled practice and what actually happens that night are separate records on purpose, so a stale or missing Discord event never blocks check-in. A session opens itself on the first QR scan of the night, and closes itself 15 minutes after the scheduled end, or 3 hours after that first scan if nothing was scheduled. Officers can end one early too.',
+      },
+      {
+        type: 'text',
+        text: 'There is no start button, which is the most reliable way I know of to stop someone forgetting to press it.',
       },
       {
         type: 'list',
@@ -230,7 +298,11 @@ export const projects = [
         ratio: '1280 / 740',
         caption: 'The /scan officer check-in screen, scanning member passes with the live camera.',
       },
-      { type: 'heading', text: 'Passes & payments' },
+      { type: 'heading', text: 'The receipt is the source of truth' },
+      {
+        type: 'text',
+        text: 'Nobody buys a pass on this site. Purchases happen on TooCOOL, the university\'s storefront, which leaves the app with an awkward job: find out about money it never touched, reliably, without ever counting the same dollar twice.',
+      },
       {
         type: 'list',
         items: [
@@ -241,10 +313,18 @@ export const projects = [
           'Officers can also issue or adjust a pass by hand for everything automation can\'t cover: comps, corrections, and general chaos.',
         ],
       },
-      { type: 'heading', text: 'Discord integration' },
+      { type: 'heading', text: 'Two systems that can\'t disagree' },
       {
         type: 'text',
-        text: 'Discord stays the single source of truth for bans instead of the site keeping its own copy. Every login checks Discord\'s ban list and the member\'s roles in parallel, then mirrors the result into a Firestore flag inside a transaction for real-time lockout. There\'s deliberately no "unban" button anywhere in the app: unbanning happens in Discord, where the ban actually lives, and the flag clears itself the next time that person logs in. That\'s one extra API round trip per sign-in, in exchange for never having two systems disagree about who\'s banned.',
+        text: 'Discord stays the single source of truth for bans instead of the site keeping its own copy. Every login checks Discord\'s ban list and the member\'s roles in parallel, then mirrors the result into a Firestore flag inside a transaction for real-time lockout.',
+      },
+      {
+        type: 'text',
+        text: 'There is deliberately no unban button anywhere in this app. Unbanning happens in Discord, where the ban actually lives, and the flag clears itself the next time that person signs in.',
+      },
+      {
+        type: 'text',
+        text: 'One extra API round trip per login, in exchange for never having two systems disagree about who\'s banned. I\'ll take that trade every time.',
       },
       {
         type: 'list',
@@ -256,9 +336,9 @@ export const projects = [
       { type: 'heading', text: 'The line I\'d want a second opinion on' },
       {
         type: 'text',
-        text: 'When Discord can\'t answer, the ban check fails open. If Discord\'s API is down at 7pm on a practice night, a banned member could sign in. The alternative is that nobody signs in, and a gym full of archers stands around while an officer refreshes Discord\'s status page. Bans are rare and officers are physically in the room, so I picked the failure that keeps practice running. I still go back and forth on it.',
+        text: 'When Discord can\'t answer, the ban check fails open. If Discord\'s API is down at 7pm on a practice night, a banned member could sign in. The alternative is that nobody signs in, and a gym full of archers stands around while an officer refreshes Discord\'s status page. Bans are rare and officers are physically in the room, so I picked the failure that keeps practice running.',
       },
-      { type: 'heading', text: 'Staff dashboard' },
+      { type: 'heading', text: 'An admin tool run from a phone' },
       {
         type: 'text',
         text: 'The officer side is a full internal admin tool at /dashboard, tabbed and swipeable on mobile, since officers run most of this from their phones at practice. Every chart on it (bar, line, heatmap, sparkline) and every piece of shared UI (data table, drawer, confirm dialog, toasts, collapsible sections, stat tiles) is hand-built rather than pulled from a charting or component library, so it all matches the app\'s theme.',
@@ -286,7 +366,7 @@ export const projects = [
         ratio: '1280 / 794',
         caption: 'The members table, with the drawer for pass edits, refunds, bans, and deletion.',
       },
-      { type: 'heading', text: 'Editable website content (a small CMS)' },
+      { type: 'heading', text: 'Letting officers edit the site' },
       {
         type: 'text',
         text: 'The parts of the public site that change every semester used to be hardcoded JSX, which meant a code deploy for something as small as a new officer photo, and nobody without programming experience could update anything. I moved those sections into Firestore documents editable from the dashboard: landing copy and pricing cards, the FAQ, officer boards versioned by year (starting a new year adds a board instead of overwriting the last one), the competitive roster and tournament results by year, the join steps and Discord invite link, and footer/social links.',
@@ -306,7 +386,7 @@ export const projects = [
         ratio: '1280 / 794',
         caption: 'Editing a pricing card from the dashboard CMS, no deploy required to see it live.',
       },
-      { type: 'heading', text: 'Public site' },
+      { type: 'heading', text: 'What a visitor actually sees' },
       {
         type: 'list',
         items: [
@@ -357,15 +437,27 @@ export const projects = [
           'Server functions lazily import googleapis, so the ones that don\'t need it don\'t pay for it in cold starts.',
         ],
       },
-      { type: 'heading', text: 'Testing' },
+      { type: 'heading', text: 'The gap I\'m not proud of' },
       {
         type: 'text',
-        text: 'Eleven test scripts (about 2,200 lines) run standalone or against the Firestore emulator. They cover rate limits, session windows, pass-expiry math, Discord rollups, email templates, and 97 allow/deny assertions against the security rules. The honest gap: CI builds and deploys but doesn\'t run any of them yet. The rules are the only thing standing between a signed-in member and everyone else\'s data, so those tests should stand between a bad rules edit and production. Event Pass already works that way. This project hasn\'t caught up.',
+        text: 'Eleven test scripts (about 2,200 lines) run standalone or against the Firestore emulator, covering rate limits, session windows, pass-expiry math, Discord rollups, email templates, and 97 allow/deny assertions against the security rules.',
+      },
+      {
+        type: 'text',
+        text: 'CI builds, CI deploys, and CI runs none of them.',
+      },
+      {
+        type: 'text',
+        text: 'The rules are the only thing standing between a signed-in member and everyone else\'s data, so those tests should be standing between a bad rules edit and production. Event Pass already works that way. This one hasn\'t caught up.',
       },
       { type: 'heading', text: 'Where this goes next' },
       {
         type: 'text',
-        text: 'This started as a fix for a paper sign-in sheet and, one feature at a time, turned into the club\'s whole management system: membership, payments, attendance, comms, and the public website in one place. The next pieces of work aren\'t features. They\'re about making the guarantees match the design. Gate deploys on the rules tests. Move the manual pass edit, currently a read-then-write, into a transaction like everything else that touches money. And actually build scan-token rotation, which the data model was designed for but no function does yet.',
+        text: 'The paper sign-in sheet is gone, and one feature at a time it took the rest of the club with it: membership, payments, attendance, comms, and the public website, all in one place.',
+      },
+      {
+        type: 'text',
+        text: 'The next pieces of work aren\'t features. They\'re about making the guarantees match the design. Gate deploys on the rules tests. Move the manual pass edit, currently a read-then-write, into a transaction like everything else that touches money. And actually build scan-token rotation, which the data model was designed for but no function does yet.',
       },
     ],
   },
@@ -378,16 +470,28 @@ export const projects = [
     description:
       'A local-first desktop writing app with a rich-text editor, an infinite canvas, version history, and on-device dictation and read-aloud.',
     summary:
-      'Inkblot is the writing app I wanted and couldn\'t find: a Tauri + React desktop app where documents, notes, and planning canvases all live in plain files on my own disk. There are no accounts and no sync servers, and the heavy features (dictation, read-aloud, rhyme suggestions) run on models that live on the machine. I\'m still building it, so this page covers where it stands today.',
+      'Inkblot is the writing app I wanted and couldn\'t find: a Tauri + React desktop app where documents, notes, and planning canvases all live in plain files on my own disk. No accounts, no sync servers, and the heavy features (dictation, read-aloud, rhyme suggestions) run on models that live on the machine. I\'m still building it, so this page is where it\'s currently at.',
     year: '2026',
     role: 'Solo project',
     stack: ['React', 'Tauri', 'Rust', 'TipTap', 'ONNX Runtime', 'Kokoro', 'whisper.cpp'],
     links: [],
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'A project is just a folder' },
       {
         type: 'text',
-        text: 'Inkblot keeps drafts, character notes, and mood boards in one place. A project is a folder, a document is a JSON file inside it, and the file tree in the sidebar mirrors what\'s on disk. A project can live anywhere, including an iCloud or OneDrive folder, which gets me syncing across machines without me running a server. The front end is React 19 on Vite with TipTap as the editor, and the Rust side handles everything a webview can\'t: the microphone, supervising the speech models, and trackpad haptics (swiping between sidebar tabs ticks the trackpad through NSHapticFeedbackManager, which the webview has no API for).',
+        text: 'Every writing app I tried wanted an account. Several wanted a subscription. All of them wanted my drafts sitting on someone else\'s server, which is a lot to ask for something that is, at the end of the day, a text file.',
+      },
+      {
+        type: 'text',
+        text: 'So, I made project a folder, and a document a JSON file inside it. The file tree in the sidebar isn\'t a metaphor for the disk. It is the disk.',
+      },
+      {
+        type: 'text',
+        text: 'That decision hands me one feature for free. A project can live anywhere, including an iCloud or OneDrive folder, which gets me syncing across machines without running a single server of my own.',
+      },
+      {
+        type: 'text',
+        text: 'Inkblot keeps drafts, character notes, and mood boards in that one place. The front end is React 19 on Vite with TipTap as the editor, and the Rust side handles everything a webview can\'t: the microphone, supervising the speech models, and trackpad haptics (swiping between sidebar tabs ticks the trackpad through NSHapticFeedbackManager, which the webview has no API for).',
       },
       { type: 'heading', text: 'What\'s in it so far' },
       {
@@ -403,12 +507,24 @@ export const projects = [
       { type: 'heading', text: 'Version history without a server' },
       {
         type: 'text',
-        text: 'Google Docs colors each edit by the collaborator who made it. Inkblot only has one writer, so it colors edits by sitting instead: every launch of the app gets a session id, hashed to a stable hue, and each checkpoint carries it. The history panel groups checkpoints by day and then by bursts of editing (a 15-minute gap starts a new burst), and it can compare any two versions side by side with a word-level diff. Merging works per paragraph, so I can take one paragraph from last Tuesday without undoing the rest of the week. Each document keeps its 200 most recent automatic checkpoints, and pruning skips named versions, so the checkpoints I bothered to name never age out.',
+        text: 'Google Docs colors each edit by the collaborator who made it. Inkblot only ever has one writer, so it colors edits by sitting instead: every launch of the app gets a session id, hashed to a stable hue, and each checkpoint carries it.',
       },
-      { type: 'heading', text: 'A canvas for planning' },
       {
         type: 'text',
-        text: 'The biggest feature so far is an infinite canvas for outlining and mood boards: cards, images, audio, links to other documents, groups, and labeled edges between them. Canvas files use the open JSON Canvas format, so another JSON Canvas app can open them too. A few design decisions carry most of the weight:',
+        text: 'The history panel groups checkpoints by day and then by bursts of editing (a 15-minute gap starts a new burst), and it can compare any two versions side by side with a word-level diff. Merging works per paragraph, so I can take one paragraph back from last Tuesday without undoing the rest of the week.',
+      },
+      {
+        type: 'text',
+        text: 'Each document keeps its 200 most recent automatic checkpoints, and pruning skips named versions, so the ones I bothered to name never age out.',
+      },
+      { type: 'heading', text: 'The canvas, and three decisions' },
+      {
+        type: 'text',
+        text: 'The biggest feature so far is an infinite canvas for outlining and mood boards: cards, images, audio, links to other documents, groups, and labeled edges between them. Canvas files use the open JSON Canvas format, so another JSON Canvas app can open them too.',
+      },
+      {
+        type: 'text',
+        text: 'Three decisions carry most of the weight, and all three amount to doing less work at the exact moment it would feel natural to do more:',
       },
       {
         type: 'list',
@@ -426,7 +542,15 @@ export const projects = [
       { type: 'heading', text: 'Where it stands' },
       {
         type: 'text',
-        text: 'Most of the app can only be exercised inside the Tauri webview, so automated tests cover the pure-logic parts, where bugs are quiet and expensive. There are thirteen headless suites for the canvas: persistence, viewport math, the reducer and undo, edges, groups, snapping, search, and a jsdom mount of the real canvas surface. The Tauri modules are stubbed with an in-memory filesystem, so the real storage code runs against them instead of a reimplementation. Running them for this write-up, the canvas search suite fails, so that goes to the top of the list. After that: the synonym model still needs work before it earns a place next to the rhyme tile, the text editor needs the same test coverage the canvas has, and the whole thing needs packaging and signing before anyone but me can install it.',
+        text: 'Most of the app can only be exercised inside the Tauri webview, so automated tests cover the pure-logic parts, where bugs are quiet and expensive. There are thirteen headless suites for the canvas: persistence, viewport math, the reducer and undo, edges, groups, snapping, search, and a jsdom mount of the real canvas surface. The Tauri modules are stubbed with an in-memory filesystem, so the real storage code runs against them instead of a reimplementation.',
+      },
+      {
+        type: 'text',
+        text: 'I ran them while writing this page. The canvas search suite fails.',
+      },
+      {
+        type: 'text',
+        text: 'So that goes to the top of the list. Behind it: the synonym model still needs work before it earns a place next to the rhyme tile, the text editor needs the coverage the canvas already has, and the whole thing needs packaging and signing before anyone but me can install it.',
       },
     ],
   },
@@ -444,15 +568,27 @@ export const projects = [
     stack: ['Rust', 'Tokio', 'cpal', 'whisper.cpp', 'whisper-rs'],
     links: [{ label: 'Source', href: 'https://github.com/g3vin/inkblot-dictation' }],
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'Microphone in, text out, nothing else' },
       {
         type: 'text',
-        text: 'I\'m building a Tauri + React app that wants live dictation, and I didn\'t want that app\'s codebase clogged up with my speech-to-text solution. So inkblot-dictation is its own crate: microphone in, cleaned transcript out, no cloud calls and no Tauri dependency. It loads a local Whisper model once, listens on the default input device, decides for itself where one spoken phrase ends and the next begins, and hands back a raw transcript and a cleaned one over a callback, whether the caller is a Tauri command or a plain CLI.',
+        text: 'I\'m building a Tauri + React app that wants live dictation, and I didn\'t want that app\'s codebase clogged up with an entire speech-to-text pipeline. So the pipeline lives somewhere else.',
+      },
+      {
+        type: 'text',
+        text: 'Microphone in, cleaned transcript out. No cloud calls, no Tauri dependency. It loads a local Whisper model once, listens on the default input device, decides for itself where one spoken phrase ends and the next begins, and hands back both a raw transcript and a cleaned one over a callback, whether the caller is a Tauri command or a bare CLI loop.',
       },
       { type: 'heading', text: 'Two stages, one boundary that matters' },
       {
         type: 'text',
-        text: 'The pipeline is two async tasks connected by bounded channels: a chunk builder that owns the audio, and a transcription worker that owns Whisper. They\'re kept separate for a reason. cpal calls the input callback on a real-time audio thread, and blocking that thread for even a few milliseconds can drop audio. So the callback only converts samples and does a try_send, always dropping a packet rather than waiting. Whisper inference, on the other hand, is a CPU-bound call that takes real time, so it runs inside tokio::task::spawn_blocking instead of on the async runtime, where it would stall every other task sharing the thread.',
+        text: 'The pipeline is two async tasks connected by bounded channels: a chunk builder that owns the audio, and a transcription worker that owns Whisper. They are kept apart because of one rule.',
+      },
+      {
+        type: 'text',
+        text: 'Never block the audio thread. cpal calls the input callback on a real-time thread, and holding onto it for even a few milliseconds drops audio. So that callback only converts samples and does a try_send, and it always throws a packet away rather than wait for room.',
+      },
+      {
+        type: 'text',
+        text: 'Whisper inference is the opposite kind of work: CPU-bound, and slow on purpose. It runs inside tokio::task::spawn_blocking rather than on the async runtime, where it would stall every other task sharing the thread.',
       },
       {
         type: 'list',
@@ -481,13 +617,17 @@ export const projects = [
       },
       {
         type: 'text',
-        text: 'Re-reading it for this write-up turned up some bugs that are, honestly, pretty funny:',
+        text: 'Re-reading that module for this write-up turned up three bugs, all of which are, honestly, pretty funny. The spoken-punctuation rules are substring matches with a leading space and no trailing boundary, which means " comma" also matches inside " command".',
+      },
+      {
+        type: 'text',
+        text: 'So "run the command" comes out as "run the,nd".',
       },
       {
         type: 'list',
         items: [
-          'The spoken-punctuation rules are substring matches with a leading space but no trailing boundary. " comma" matches inside " command", so "run the command" comes out as "run the,nd". Periodic, colonel, and colony all have the same problem.',
-          'The " quote " rule runs before " end quote ", so "end quote" becomes "end “" and the end-quote rule can never fire.',
+          'Periodic, colonel, and colony all break the same way, for the same reason.',
+          'The " quote " rule runs before " end quote ", so "end quote" becomes "end “" and the end-quote rule can never fire at all.',
           '" new paragraph " needs a trailing space, but Whisper usually hands back "new paragraph." with a period attached. The most useful command is the one that most often doesn\'t work.',
         ],
       },
@@ -503,7 +643,19 @@ export const projects = [
       { type: 'heading', text: 'Where this goes next' },
       {
         type: 'text',
-        text: 'This is the working prototype, not the hardened version, and the honest list is longer than I\'d like. The biggest item is ordering: the worker fires off each spawn_blocking inference and never awaits the handle, so several can run at once and finish in any order. A slow partial can land after its own Final, and Finals can arrive after Stopped. A per-session sequence number, or just awaiting each job in turn, fixes it. There\'s also no automated test suite yet, which is how the cleanup bugs above survived. The cleanup module is pure string in, string out, so it\'s the easiest place to start. After that, the fixed RMS threshold needs noise-floor adaptation (a threshold tuned for a quiet room clips soft speech or hangs open in a noisy one), and re-transcribing the whole buffer should become incremental, so partials stop getting more expensive as a chunk grows.',
+        text: 'This is the working prototype, not the hardened version, and the honest list is longer than I\'d like.',
+      },
+      {
+        type: 'text',
+        text: 'The biggest item is ordering. The worker fires off each spawn_blocking inference and never awaits the handle, so several can run at once and finish in any order. A slow partial can land after its own Final, and Finals can arrive after Stopped. A per-session sequence number, or simply awaiting each job in turn, fixes it.',
+      },
+      {
+        type: 'text',
+        text: 'There\'s also no automated test suite, which is precisely how three string-matching bugs survived long enough to get written up on a portfolio. The cleanup module is pure string in, string out, so it\'s the easiest possible place to start.',
+      },
+      {
+        type: 'text',
+        text: 'After that, the fixed RMS threshold needs noise-floor adaptation (a threshold tuned for a quiet room clips soft speech, or hangs open in a noisy one), and re-transcribing the whole buffer should become incremental, so partials stop getting more expensive as a chunk grows.',
       },
     ],
   },
@@ -515,23 +667,39 @@ export const projects = [
     description:
       'A multi-stage NLP pipeline that generates and ranks context-aware single-word synonyms, plus a SWORDS evaluation that caught my own data leak.',
     summary:
-      'Given a sentence and a target word, this pipeline generates candidate single-word substitutes from four sources, filters them through spaCy syntax and WordNet checks, scores them with Sentence-BERT, BERT fluency, and a learned ranker, optionally reranks with a cross-encoder, and re-inflects the winner to match the target\'s tense and number. I evaluated its ranking on the SWORDS benchmark, and the evaluation turned out to be the most interesting part: my headline number was partly scored on training data, one model had collapsed into a constant, and the most expensive stage makes things worse.',
+      'Given a sentence and a target word, this pipeline generates candidate single-word substitutes from four sources, filters them through spaCy syntax and WordNet checks, scores them with Sentence-BERT, BERT fluency, and a learned ranker, optionally reranks with a cross-encoder, and re-inflects the winner to match the target\'s tense and number. Then I evaluated its ranking on the SWORDS benchmark, and the evaluation turned out to be the interesting part: my headline number was partly scored on training data, one model had quietly collapsed into a constant, and the most expensive stage in the pipeline makes it worse.',
     year: '2026',
     role: 'Solo project',
     stack: ['Python', 'PyTorch', 'Transformers', 'spaCy', 'Sentence-BERT', 'FLAN-T5', 'scikit-learn', 'NLTK/WordNet'],
     links: [{ label: 'Source', href: 'https://github.com/g3vin/lexical-substitution-pipline' }],
     poster: '/projects/lexsub-ablation.png',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'Not a thesaurus lookup' },
       {
         type: 'text',
-        text: 'Lexical substitution sounds like a thesaurus lookup until you make it context-aware. Take "falling" in "His soul swooned slowly as he heard the snow falling faintly." You want "drifting" or "settling", not "failing" or "decreasing", and you want it conjugated to match: "drifting", not "drift". I built this as a pipeline instead of a single model because no single signal can be trusted on its own. A masked language model will happily suggest a word that means the opposite, a thesaurus will hand you a synonym that\'s the wrong part of speech for this sentence, and a sentence embedding will call two sentences similar even when the swapped word doesn\'t inflect correctly. Each stage exists to catch what the one before it can\'t see (kinda like the Magi in Neon Genesis Evangelion!).',
+        text: 'Lexical substitution sounds like a thesaurus lookup right up until you make it context-aware. Take "falling" in "His soul swooned slowly as he heard the snow falling faintly." You want "drifting" or "settling". You do not want "failing" or "decreasing", and you want it conjugated to match: "drifting", not "drift".',
       },
       {
         type: 'text',
-        text: 'Some real runs, straight from the repo\'s example outputs: on that Joyce line, the pipeline ranks settling, descending, dropping, melting, drifting. On "The horror! The horror!" it offers fear, fright, scare, nightmare. And on "Call me Ishmael." its one surviving answer is "Leave", as in "Leave me Ishmael", which is grammatical, confident, and a completely different novel. Every candidate carries six separate scores (lexical-resource match, target-word similarity, sentence-level similarity, MLM fluency, a learned validity score, and a cross-encoder rerank) that get combined into the final order.',
+        text: 'So why not hand the whole job to one good model? Because no single signal can be trusted on its own. A masked language model will happily suggest a word meaning the exact opposite. A thesaurus will hand you a synonym that\'s the wrong part of speech for this sentence. A sentence embedding will call two sentences similar even when the swapped word doesn\'t inflect correctly.',
       },
-      { type: 'heading', text: 'The pipeline' },
+      {
+        type: 'text',
+        text: 'So each stage exists to catch what the stage before it can\'t see (kinda like the Magi in Neon Genesis Evangelion!).',
+      },
+      {
+        type: 'text',
+        text: 'Some real runs, straight from the repo\'s example outputs. On that Joyce line, the pipeline ranks settling, descending, dropping, melting, drifting. On "The horror! The horror!" it offers fear, fright, scare, nightmare. And on "Call me Ishmael." its one surviving answer is "Leave".',
+      },
+      {
+        type: 'text',
+        text: '"Leave me Ishmael" is grammatical, confident, and a completely different novel.',
+      },
+      {
+        type: 'text',
+        text: 'Every candidate carries six separate scores (lexical-resource match, target-word similarity, sentence-level similarity, MLM fluency, a learned validity score, and a cross-encoder rerank) that get combined into the final order.',
+      },
+      { type: 'heading', text: 'Six signals, because one can\'t be trusted' },
       {
         type: 'list',
         items: [
@@ -543,7 +711,7 @@ export const projects = [
           'Morphology re-inflects the winning candidate to match the target\'s tense, number, and degree via lemminflect, with hand-written fallback rules for plurals, -ing forms, past tense, third-person singular, and comparative/superlative, plus a regex guard against the classic double-suffix bug where an inflector hands back "greaterer" or "classeses".',
         ],
       },
-      { type: 'heading', text: 'Evaluating against SWORDS' },
+      { type: 'heading', text: 'How do you grade a synonym?' },
       {
         type: 'text',
         text: 'SWORDS is a lexical-substitution benchmark of real sentences where crowdworkers scored a large candidate pool per target word, so evaluation isn\'t "did it guess the one right answer" but "how well does its ranking agree with a distribution of human judgments." To be precise about what I measured: the evaluation hands the pipeline SWORDS\' own candidate lists and scores how well it ranks them. It measures ranking, not end-to-end generation. I scored all 370 dev-split targets (22,978 candidates) with NDCG@k, MAP@k, precision@k, and pairwise accuracy (the fraction of gold-scored candidate pairs ordered correctly, independent of k), all implemented by hand with per-POS and per-k breakdowns.',
@@ -567,15 +735,39 @@ export const projects = [
       { type: 'heading', text: 'Results, honestly (I leaked my own test set)' },
       {
         type: 'text',
-        text: 'The first number I reported was NDCG@10 of 0.531. Then, writing this up, I went back to check which split the learned ranker was trained on. It was SWORDS dev, the same 370 targets I was evaluating on, with an 80/20 split grouped by target. So 296 of the 370 targets behind that headline were training data. On the 74 held-out targets the ranker never saw, the honest numbers are NDCG@10 0.488, MAP@10 0.346, precision@10 0.243, and pairwise accuracy 0.608. That\'s the number on the receipt now.',
+        text: 'The first number I reported was NDCG@10 of 0.531. Then, writing this up, I went back to check which split the learned ranker had actually been trained on.',
       },
       {
         type: 'text',
-        text: 'The substitute-validity model had a quieter problem. Across 840 example outputs, its scores range from 0.110907 to 0.110915. That\'s not a signal, that\'s a constant, and specifically it\'s the dataset\'s mean gold score. On labels that are mostly near zero, the regression head found that predicting the average keeps the loss low, and stopped there. Its correlation with gold is 0.03. Since filtered-out candidates score 0, the "feature" was really just a flag for "survived filtering", which the ranker could have gotten for free, minus the 500 MB of weights.',
+        text: 'SWORDS dev. The same 370 targets I was evaluating it on.',
       },
       {
         type: 'text',
-        text: 'I also ran a feature-ablation sweep: drop one signal, re-score the whole dev set, see what breaks. (These runs use the same contaminated set, so read them as comparisons between configurations, not absolute scores.) Removing the MLM fluency score hurts the most, taking NDCG from 0.531 to 0.469, which matched my expectation. What didn\'t: removing the cross-encoder reranker entirely beats the full pipeline on every metric. NDCG 0.541 vs 0.531, MAP 0.365 vs 0.356, precision 0.275 vs 0.263, pairwise 0.639 vs 0.624. The most expensive stage in the pipeline, an extra transformer forward pass per candidate in the rerank pool, is net negative.',
+        text: 'With an 80/20 split grouped by target, that means 296 of the 370 targets behind my headline number were training data. On the 74 held-out targets the ranker never saw, the honest numbers are NDCG@10 0.488, MAP@10 0.346, precision@10 0.243, and pairwise accuracy 0.608. That\'s the number on the receipt now.',
+      },
+      {
+        type: 'text',
+        text: 'The substitute-validity model had a quieter problem. Across 840 example outputs, its scores range from 0.110907 to 0.110915.',
+      },
+      {
+        type: 'text',
+        text: 'That is not a signal. That is a constant, and specifically it is the dataset\'s mean gold score.',
+      },
+      {
+        type: 'text',
+        text: 'On labels that sit mostly near zero, the regression head worked out that predicting the average keeps the loss low, and then stopped there. Its correlation with gold is 0.03. Since filtered-out candidates score 0, the "feature" was really a flag for "survived filtering", which the ranker could have had for free, minus the 500 MB of weights.',
+      },
+      {
+        type: 'text',
+        text: 'I also ran a feature-ablation sweep: drop one signal, re-score the whole dev set, see what breaks. (These runs use the same contaminated set, so read them as comparisons between configurations, not as absolute scores.) Removing the MLM fluency score hurts the most, taking NDCG from 0.531 to 0.469, which is exactly what I expected.',
+      },
+      {
+        type: 'text',
+        text: 'Here is what I did not expect. Removing the cross-encoder reranker entirely beats the full pipeline on every metric: NDCG 0.541 vs 0.531, MAP 0.365 vs 0.356, precision 0.275 vs 0.263, pairwise 0.639 vs 0.624.',
+      },
+      {
+        type: 'text',
+        text: 'The most expensive stage in the pipeline, an extra transformer forward pass per candidate in the rerank pool, is net negative.',
       },
       {
         type: 'image',
@@ -615,12 +807,16 @@ export const projects = [
     links: [],
     poster: '/projects/cooling-tower-poster.jpg',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'How long until it breaks?' },
       {
         type: 'text',
-        text: 'Fixing a cooling tower after it fails costs far more than servicing it beforehand, before you even count the downtime. So the useful question isn\'t whether a unit is healthy now, but how long it will stay that way. I framed that as a regression problem: predict Remaining Useful Life (the number of days until the next reactive work order) for a Langley cooling tower and all of its associated pumps.',
+        text: 'Fixing a cooling tower after it fails costs far more than servicing it beforehand, and that is before anyone counts the downtime. Which makes "is this unit healthy?" the wrong question to ask it. The answer is almost always yes, right up until the morning it isn\'t.',
       },
-      { type: 'heading', text: 'The data' },
+      {
+        type: 'text',
+        text: 'The useful question is how long it stays that way. I framed that as a regression problem: predict Remaining Useful Life, the number of days until the next reactive work order, for a Langley cooling tower and all of its associated pumps.',
+      },
+      { type: 'heading', text: 'Three sources, one timeline' },
       {
         type: 'text',
         text: 'Three sources had to be lined up on one timeline before any modeling could happen.',
@@ -633,10 +829,14 @@ export const projects = [
           'Langley AFB METAR weather: hourly local conditions from the airfield next door. The theory was that weather is what wears a cooling tower down unexpectedly.',
         ],
       },
-      { type: 'heading', text: 'Modeling' },
+      { type: 'heading', text: 'Predicting forward, never backward' },
       {
         type: 'text',
-        text: 'I used XGBoost regression, with evaluation designed around this being time series data. Folds were split chronologically, with the newest year held out, rather than shuffled, so the model is always predicting forward. A random split would let it learn from the future, which isn\'t learning, it\'s memorizing.',
+        text: 'I used XGBoost regression, with the evaluation designed around this being time series data. Folds were split chronologically, with the newest year held out, rather than shuffled, so the model is always predicting forward.',
+      },
+      {
+        type: 'text',
+        text: 'A random split would let it learn from the future. That isn\'t learning, it\'s memorizing.',
       },
       {
         type: 'list',
@@ -646,12 +846,24 @@ export const projects = [
           'Scored against a naive benchmark rather than against zero, so any improvement had to be real.',
         ],
       },
-      { type: 'heading', text: 'Results, honestly' },
+      { type: 'heading', text: 'It never beat a naive guess' },
       {
         type: 'text',
-        text: 'The naive benchmark averaged an error of 39.43 across folds (27.81, 29.04, 61.43). My first model came in around 41, and tuning never got it under the benchmark. In other words, the model never learned anything a naive guess didn\'t already know. That\'s a real result, not just a failed one: it says the vibration, maintenance, and weather features as I built them don\'t carry enough signal about when the next reactive repair is coming. The third fold is the interesting part. Its error is double the other two, so whatever changed in those later years (new equipment, different maintenance habits, or just a bad year) isn\'t something the features capture. That\'s where the future work is.',
+        text: 'The naive benchmark averaged an error of 39.43 across folds (27.81, 29.04, 61.43). My first model came in around 41. Tuning never got it under the benchmark.',
       },
-      { type: 'heading', text: 'Presenting it' },
+      {
+        type: 'text',
+        text: 'The model never learned anything a naive guess didn\'t already know.',
+      },
+      {
+        type: 'text',
+        text: 'That is a real result, not just a failed one. It says the vibration, maintenance, and weather features, as I built them, don\'t carry enough signal about when the next reactive repair is coming.',
+      },
+      {
+        type: 'text',
+        text: 'The third fold is where I would start over. Its error is double the other two, so whatever changed in those later years (new equipment, different maintenance habits, or just a bad year) is something the features don\'t capture at all. That\'s where the future work is.',
+      },
+      { type: 'heading', text: 'Presenting it to thirty engineers' },
       {
         type: 'text',
         text: 'I presented this work to around 30 NASA engineers and staff at a Jam Session (usually led by my mentor, Charles Liles), walking through cross-validation, leakage, and hyperparameter tuning for time series maintenance data. The goal was partly to share the method and partly to recruit. Attendees with domain knowledge, like the maintenance folks, were invited to help refine the model through a shared Google Cloud Jupyter notebook, which started an ongoing collaboration.',
@@ -679,10 +891,18 @@ export const projects = [
     ],
     poster: '/projects/turbine-vane-comparison.jpg',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: 'The defect you find out about later' },
       {
         type: 'text',
-        text: 'Howmet casts the turbine vanes that sit in the hot section of jet engines, where a hidden void or a non-metallic inclusion is the kind of defect you find out about the expensive way. Every part is X-rayed and an operator reads the image. That read is about 87% accurate, and it doesn\'t scale. Howmet brought the problem to Purdue\'s Data Mine asking for a model that could do the flagging automatically. Our team of six picked up where the previous year\'s group left off and built both halves: the image processing pipeline, and the classifier on the end of it.',
+        text: 'Howmet casts the turbine vanes that sit in the hot section of jet engines. A hidden void or a non-metallic inclusion inside one is the kind of defect you find out about the expensive way, at altitude.',
+      },
+      {
+        type: 'text',
+        text: 'So every part gets X-rayed and a person reads the image. That read is about 87% accurate, and it does not scale.',
+      },
+      {
+        type: 'text',
+        text: 'Howmet brought the problem to Purdue\'s Data Mine asking for a model that could do the flagging automatically. Our team of six picked up where the previous year\'s group left off and built both halves: the image processing pipeline, and the classifier on the end of it.',
       },
       {
         type: 'image',
@@ -692,10 +912,14 @@ export const projects = [
           'Anomalous (left) and normal (right) after filtering. The defect is the mottled patch below the leading edge. That\'s the signal the model has to learn.',
         fit: 'contain',
       },
-      { type: 'heading', text: 'The image pipeline' },
+      { type: 'heading', text: 'Making the defect visible first' },
       {
         type: 'text',
-        text: 'The raw input is a DICOM X-ray of the whole part, and the defect is a low-contrast texture change inside a region that\'s already nearly black. Feed that to a classifier directly and it wastes most of its capacity learning to find the vane. So my teammates built a pipeline that takes a DICOM straight off the machine and hands back something a network can actually separate: crop to the vane, run a horizontal Sobel filter to pull out edge structure, invert, sharpen with an unsharp mask, then push the contrast. Every image the model ever sees goes through it.',
+        text: 'The raw input is a DICOM X-ray of the whole part, and the defect is a low-contrast texture change inside a region that is already nearly black. Feed that to a classifier directly and it spends most of its capacity learning where the vane is.',
+      },
+      {
+        type: 'text',
+        text: 'So my teammates built a pipeline that takes a DICOM straight off the machine and hands back something a network can actually separate: crop to the vane, run a horizontal Sobel filter to pull out edge structure, invert, sharpen with an unsharp mask, then push the contrast. Every image the model ever sees goes through it.',
       },
       {
         type: 'image',
@@ -704,7 +928,7 @@ export const projects = [
         caption: 'One image through every stage, from the original DICOM on the left to classifier input on the right.',
         fit: 'contain',
       },
-      { type: 'heading', text: 'Data and splits' },
+      { type: 'heading', text: 'Where my part starts' },
       {
         type: 'text',
         text: 'This is where my part starts. We had roughly 3,000 human-flagged images, and defective parts are (fortunately for Howmet, unfortunately for us) rare. Augmentation added about 2,000 more. I split anomalous and normal separately at 7:2:1 into train, validation, and test so the class balance held in every split, and oversampled the anomalous class in training.',
@@ -716,7 +940,7 @@ export const projects = [
         caption: 'Splitting each class separately, then oversampling the anomalous side of the training set.',
         fit: 'contain',
       },
-      { type: 'heading', text: 'The model' },
+      { type: 'heading', text: 'Borrowing features that already work' },
       {
         type: 'text',
         text: 'I built the classifier with transfer learning: VGG and ResNet backbones pretrained on ImageNet, with a custom classification head, fine-tuned on vane data. With a few thousand images and two classes, training from scratch was never going to beat borrowing features that already know what edges and textures look like from millions of samples. Then I swept the hyperparameters that mattered most: convolutional layers (2 to 5), batch size (16 to 32), and training length (20 to 50 epochs). The best configurations hit around 94% validation accuracy, which is what our poster leads with.',
@@ -728,10 +952,18 @@ export const projects = [
         caption: 'The hyperparameter sweep. The best runs reach ~94%. The problem is that accuracy is the wrong thing to optimize here, which the test set made very clear.',
         fit: 'contain',
       },
-      { type: 'heading', text: 'Results, honestly' },
+      { type: 'heading', text: '94%, and the 23 it was hiding' },
       {
         type: 'text',
-        text: 'That 94% doesn\'t survive the test set. On 159 held-out images, the model caught only 4 of the 27 defective vanes and let 23 through as normal. Overall test accuracy is about 71%. The dataset is about 83% normal, which means a model can say "normal" to everything and score in the eighties without learning anything. We were distracted by accuracy when the thing that matters in inspection is how many defects you miss, and we missed most of them (oops, in retrospect).',
+        text: 'That 94% does not survive the test set. On 159 held-out images, the model caught 4 of the 27 defective vanes.',
+      },
+      {
+        type: 'text',
+        text: 'It passed the other 23 through as normal.',
+      },
+      {
+        type: 'text',
+        text: 'Overall test accuracy is about 71%, and the dataset is about 83% normal, which means a model can answer "normal" to everything and still score in the eighties without learning a single thing. We optimized for accuracy when the number that matters in inspection is how many defects you miss. We missed most of them.',
       },
       {
         type: 'image',
@@ -786,10 +1018,18 @@ export const projects = [
     links: [],
     poster: '/projects/mailstop-list.png',
     blocks: [
-      { type: 'heading', text: 'Overview' },
+      { type: 'heading', text: '3,400 people, 190 buildings' },
       {
         type: 'text',
-        text: 'Every piece of mail moving inside NASA Langley is sorted by a MailStop ID, which maps a recipient to one of 190 buildings, down to their room and department, for more than 3,400 staff. The previous app was built with Oracle APEX in 2011, and rising license costs plus a very 2011 UI put migration on the table. I rebuilt it as a Microsoft Power App on a SharePoint Lists backend, since Langley already has a strong Office 365 agreement. Along the way, I redesigned the data model and search so staff and admins could find their own assignments more easily, which matters a lot when buildings are being renovated and departments reorganized constantly.',
+        text: 'Every piece of mail moving inside NASA Langley is sorted by a MailStop ID, which maps a recipient to one of 190 buildings, down to their room and department, for more than 3,400 staff.',
+      },
+      {
+        type: 'text',
+        text: 'The app that managed all of that was built with Oracle APEX in 2011, and it looked it. Rising license costs, plus a very 2011 UI, put migration on the table.',
+      },
+      {
+        type: 'text',
+        text: 'I rebuilt it as a Microsoft Power App on a SharePoint Lists backend, since Langley already has a strong Office 365 agreement. Along the way I redesigned the data model and the search, so staff and admins could find their own assignments without asking anyone, which matters a lot somewhere buildings are constantly being renovated and departments constantly reorganized.',
       },
       {
         type: 'gallery',
@@ -806,10 +1046,22 @@ export const projects = [
           },
         ],
       },
-      { type: 'heading', text: 'How I built it' },
+      { type: 'heading', text: 'The trap is called delegation' },
       {
         type: 'text',
-        text: 'The hard part wasn\'t the frontend (though that was tedious), it was the backend swap. The APEX app sat on seven related Oracle tables. SharePoint Lists is flat storage, not a relational database, so every join the old schema relied on had to be reimplemented inside the Power App itself. And the app layer has a trap: delegation. Power Apps can only push some queries down to SharePoint. Anything it can\'t delegate gets evaluated against just the first 500 rows (2,000 at most), with a small warning icon and no error. With 3,400+ people in the data, a careless filter means somebody\'s MailStop silently doesn\'t exist. That constraint drove most of the design.',
+        text: 'The hard part wasn\'t the frontend, though the frontend was tedious. It was the backend swap. The APEX app sat on seven related Oracle tables, and SharePoint Lists is flat storage rather than a relational database, so every join the old schema relied on had to be reimplemented inside the Power App itself.',
+      },
+      {
+        type: 'text',
+        text: 'Then there is the trap. Power Apps can only push some queries down to SharePoint. Anything it can\'t delegate gets evaluated against the first 500 rows (2,000 at most), and you get a small warning icon.',
+      },
+      {
+        type: 'text',
+        text: 'And no error.',
+      },
+      {
+        type: 'text',
+        text: 'With 3,400+ people in the data, a careless filter means somebody\'s MailStop silently does not exist. That one constraint drove most of the design.',
       },
       {
         type: 'list',
@@ -851,10 +1103,14 @@ export const projects = [
           },
         ],
       },
-      { type: 'heading', text: 'What I would do differently' },
+      { type: 'heading', text: 'What low-code gives and takes' },
       {
         type: 'text',
-        text: 'Low-code gave this a quick, cheap turnaround and handed Langley something staff with no programming experience can maintain. But it doesn\'t give you schema-level constraints or relational logic inside the database, and testing it is mostly manual. With more time, I would push more validation into the data layer instead of trusting every write path to check it.',
+        text: 'Low-code gave this a quick, cheap turnaround and handed Langley something staff with no programming experience can maintain after I leave. That was the entire point, and it worked.',
+      },
+      {
+        type: 'text',
+        text: 'What it does not give you is schema-level constraints, relational logic inside the database, or any way to test the thing that isn\'t a person with a checklist. With more time, I\'d push more validation down into the data layer instead of trusting every write path to remember to check.',
       },
     ],
   },
