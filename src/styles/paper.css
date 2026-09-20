@@ -12,10 +12,52 @@
   font-display: swap;
 }
 
-/* The mask that cuts the torn edges also clips a box-shadow, so the shadow
-   lives on this wrapper as a filter, which respects the mask's alpha. */
+/* The mask that cuts the torn edges also clips a box-shadow on the sheet, so
+   the shadow lives on this wrapper — as its own layer behind the paper rather
+   than as a filter over it.
+
+   It WAS a pair of drop-shadow() filters, which followed the torn silhouette
+   exactly. The cost was that `filter` renders the whole element into one
+   offscreen buffer, and the home receipt is some 3000px tall: at a phone's 3x
+   that is a ~9000px layer, past the renderer's texture ceiling, so it came back
+   rasterized at a reduced scale and upscaled. The flat middle of a sheet
+   survives that without complaint. The torn edges — the only few-pixel detail
+   on the whole thing — did not, and went visibly pixelated on mobile while
+   desktop, at 1x or 2x, stayed under the ceiling and looked fine. A box-shadow
+   composites at native resolution at any density and any zoom.
+
+   What is given up is the shadow tracking the tear tooth for tooth; what is
+   kept is a soft rectangle tucked just inside it, which at this blur is not a
+   distinction the eye can make. */
 .paper {
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.18)) drop-shadow(0 8px 16px rgb(0 0 0 / 0.12));
+  /* One cell, so the shadow can be laid behind the SHEET rather than sized to
+     this wrapper's box: .receipt-paper carries a 22vh run-out as padding, and
+     the shadow must not be stretched down through it. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* A stacking context, so the shadow's negative z-index settles behind the
+     sheet and goes no further — without one it would drop behind whatever the
+     page has painted underneath. */
+  isolation: isolate;
+}
+
+.paper > *,
+.paper::before {
+  grid-area: 1 / 1;
+}
+
+.paper::before {
+  content: "";
+  z-index: -1;
+  /* How deep the tear actually runs, which is not --tear. The band is 14px, but
+     the tear line itself sits ~3px into it and escapes to ~8 at its deepest
+     (see tearEdge in ../lib/paper.js), so inset by the escape depth: the
+     rectangle stays under paper along the whole edge, and the shadow still
+     reaches nearly as far past the bottom of the sheet as the filter's did. */
+  margin: 8px 0;
+  box-shadow:
+    0 2px 3px rgb(0 0 0 / 0.18),
+    0 8px 16px rgb(0 0 0 / 0.12);
 }
 
 .sheet {
@@ -213,6 +255,40 @@
   text-align: right;
 }
 
+/* The value end of a link row: the address, and the cue that it leads
+   somewhere. They travel together -- a row that has to wrap drops both onto the
+   next line rather than stranding the arrow under its address.
+
+   The cue is ASCII, like the receipt's line items: the paper's Doto subset
+   carries no U+2192 or U+2197, so either arrow glyph would fall back to a
+   system font and print in the wrong type mid-line. */
+.slip-link__target {
+  flex: 0 0 auto;
+  max-width: 100%;
+  text-align: right;
+}
+
+.slip-link__go {
+  text-decoration: none;
+}
+
+/* A link row wraps the way a field row does: the address prints beside its
+   label while it fits, and takes the next line to itself when it does not. */
+.slip-link--row {
+  flex-wrap: wrap;
+}
+
+.slip-link--row .slip-label {
+  flex-shrink: 0;
+}
+
+.slip-link--row .slip-link__target {
+  /* Flush left once it is on a line of its own; a one-line value still sits
+     against the label's right edge, which justify-content does. */
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
 /* Thermal paper cannot really highlight, so a line darkens instead. Every
    pressable line on every sheet is this one rule: `.slip-press` is the hook for
    the ones that are not `.slip-link`s — the receipt's line items, which darken
@@ -268,9 +344,16 @@
   color: inherit;
   cursor: pointer;
   /* The hit area is the full width of the sheet, so the tap highlight a phone
-     paints over it is a grey slab the width of the paper. The blink is its own
-     answer to being pressed. */
+     paints over it is a grey slab the width of the paper. The shut eyes are
+     their own answer to being pressed. */
   -webkit-tap-highlight-color: transparent;
+  /* Pressing the bear means holding it, and a long press is exactly what a
+     phone reads as "select this" -- without these, iOS interrupts the hold
+     with a callout and a blue selection over the mark. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 /* The small spaced line above a sheet's name. */

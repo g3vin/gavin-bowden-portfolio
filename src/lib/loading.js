@@ -1,11 +1,14 @@
-// When something is actually being waited for.
+// When something is actually being waited for, and when the wait ends.
 //
-// Nothing here draws anything; these two decide whether a reader is genuinely
-// stuck looking at an empty frame, so that ../components/DotRipple.jsx can be
-// laid over the media still on its way and over nothing else. Roughly ten
-// megabytes of posters and clips hang off this site — two and a half of them
-// in a single event-pass recording — so on a poor connection the frames are
-// empty for real, and on a good one none of this is ever seen.
+// Nothing here draws anything. These two hooks answer two questions about a
+// figure's media: whether the reader is genuinely stuck looking at an empty
+// frame, so that ../components/DotRipple.jsx can be laid over the media still
+// on its way and over nothing else; and whether it arrived while they were
+// watching, so the frame around it can open rather than cut in (see the arrival
+// block in ../components/ContentBlocks.css). Roughly ten megabytes of posters
+// and clips hang off this site — two and a half of them in a single event-pass
+// recording — so on a poor connection the frames are empty for real, and on a
+// good one none of this is ever seen.
 
 import { useEffect, useState } from 'react'
 
@@ -42,6 +45,40 @@ function watch(target, setPending, { starts = [], settles }) {
 
 const IMAGE_SETTLED = ['load', 'error']
 
+// Whether a figure's media arrived while the reader was looking at the frame.
+//
+//   ready   — nothing to say. It was already decoded when this ran: from the
+//             cache, or simply because it landed before the bundle did. It is
+//             on screen, and an animation now could only take it away and give
+//             it back.
+//   waiting — still empty. The frame holds the picture back, which costs
+//             nothing to look at, because an undecoded picture paints nothing
+//             either way. That is the whole reason a JavaScript-driven reveal
+//             is safe on a prerendered page: the state being hidden is a state
+//             with nothing in it.
+//   landed  — it arrived just now, so the frame opens.
+//
+// The three words are the class names the figure prints them as; a reader with
+// no JavaScript stays on `ready` for everything and sees each picture the
+// moment it lands, exactly as before any of this.
+const READY = 'ready'
+const WAITING = 'waiting'
+const LANDED = 'landed'
+
+// Both hooks watch the same three events on an <img>, one way or another, so
+// they bind the arrival the same way too. `error` lands as surely as `load`
+// does: a picture that is never coming has to give its alt text back, and a
+// clip that cannot fetch its poster has to show the reader the frame.
+function bindArrival(image, setArrival) {
+  if (image.complete) return undefined
+  setArrival(WAITING)
+  const landed = () => setArrival(LANDED)
+  for (const event of IMAGE_SETTLED) image.addEventListener(event, landed)
+  return () => {
+    for (const event of IMAGE_SETTLED) image.removeEventListener(event, landed)
+  }
+}
+
 // How close a lazy image has to come before it counts as being waited for.
 const NEAR_VIEWPORT = '200px'
 
@@ -49,6 +86,7 @@ const NEAR_VIEWPORT = '200px'
 // receipt, the thumbnail a phone gets when it opens a row.
 export function useSlowImage(ref, src) {
   const [pending, setPending] = useState(false)
+  const [arrival, setArrival] = useState(READY)
 
   // Deliberately false on the server and on the first client render. The pages
   // are prerendered (see scripts/prerender.js) and a reader with JavaScript off
@@ -62,6 +100,7 @@ export function useSlowImage(ref, src) {
     // for, and nothing should flash.
     if (image.complete) return
 
+    const unbind = bindArrival(image, setArrival)
     const watcher = watch(image, setPending, { settles: IMAGE_SETTLED })
 
     // These images are loading="lazy", and one far below the fold has not been
@@ -80,12 +119,13 @@ export function useSlowImage(ref, src) {
     observer.observe(image)
 
     return () => {
+      unbind?.()
       watcher.stop()
       observer.disconnect()
     }
   }, [ref, src])
 
-  return pending
+  return { pending, arrival }
 }
 
 // Anything that means the clip has nothing to show and is trying to get it.
@@ -105,6 +145,7 @@ const SETTLED = ['suspend', 'loadeddata', 'canplay', 'playing', 'pause', 'error'
 export function useSlowVideo(ref, poster) {
   const [posterPending, setPosterPending] = useState(false)
   const [bufferPending, setBufferPending] = useState(false)
+  const [arrival, setArrival] = useState(READY)
 
   // The poster is not lazy — the browser asks for it as soon as the page is
   // laid out — but a <video> fires no event when one arrives, so it is watched
@@ -117,9 +158,15 @@ export function useSlowVideo(ref, poster) {
     image.src = poster
     if (image.complete) return
 
+    // The same Image() reports both: whether the poster is slow enough to be
+    // worth a ripple, and the moment it is there for the frame to open on.
+    const unbind = bindArrival(image, setArrival)
     const watcher = watch(image, setPosterPending, { settles: IMAGE_SETTLED })
     watcher.start()
-    return watcher.stop
+    return () => {
+      unbind?.()
+      watcher.stop()
+    }
   }, [poster])
 
   // Buffering. The clips start themselves as they scroll into view, so this is
@@ -132,5 +179,8 @@ export function useSlowVideo(ref, poster) {
     return watch(video, setBufferPending, { starts: FETCHING, settles: SETTLED }).stop
   }, [ref])
 
-  return posterPending || bufferPending
+  // A clip with no poster has nothing to hold back and nothing to open on: the
+  // browser paints its first frame when it feels like it, and bindArrival is
+  // never reached, so it stays `ready`.
+  return { pending: posterPending || bufferPending, arrival }
 }

@@ -6,16 +6,27 @@ receipt opens with, so a shared link arrives looking like the page it opens.
 
 Nothing here runs at build time — the card is committed as public/og.png and
 this script only exists to redraw it when the receipt's header changes. It
-needs fonttools[woff2] for the font, rsvg-convert for the raster and Pillow
-to pack the result down:
+The paper is the page's own: the creases, swells and specks below are a port of
+src/lib/paper.js, so the card is creased by the rules that crease every sheet on
+the site rather than by a second idea of what this stock looks like.
 
-    pip install fonttools brotli pillow && brew install librsvg
+Nothing here runs at build time -- the card is committed as public/og.png and
+this script only exists to redraw it when the receipt's header changes. It needs
+fonttools[woff2] for the font, rsvg-convert for the raster, and Pillow and numpy
+to shrink the result and measure it:
+
+    pip install fonttools brotli pillow numpy && brew install librsvg
     python3 scripts/generate-og.py
 """
+
+import random
 
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 from fontTools.pens.svgPathPen import SVGPathPen
+
+import numpy as np
+from PIL import Image
 
 from bear_grid import INK, ROOT, bear_grid, lit_dots, paper_colour, rasterise
 
@@ -72,6 +83,13 @@ def text_path(font, text, size, letter_spacing, cx, baseline):
 
 BEAR_WIDTH, BEAR_HEIGHT, BEAR_ROWS = bear_grid()
 BEAR_ASPECT = BEAR_HEIGHT / BEAR_WIDTH
+# The grid carries blank rows above the ears, and the top dot's edge sits a
+# little inside its own row. Both are measured once, as a fraction of the drawn
+# width, so the header can be laid out from where the bear actually starts
+# rather than from the corner of the grid it is burned into.
+BEAR_INSET = (
+    min(y for _, y in lit_dots(BEAR_WIDTH, BEAR_ROWS)) + 0.08
+) / BEAR_WIDTH
 
 
 def bear_dots(size, cx, top):
@@ -95,31 +113,287 @@ def rule(cx, y, width):
     return (line % f'{y:.1f}') + (line % f'{y + 7:.1f}')
 
 
+# The paper.
+#
+# Ported from src/lib/paper.js, which is what draws the sheet the receipt is
+# printed on everywhere else on the site. The card used to generate a crumple of
+# its own, and every version of that read as something other than paper -- as
+# veins, then as folds, then as scratches -- because it was a second, unrelated
+# idea of what this stock looks like. There is only one now, and the page owns
+# it: a shared link and the page it opens are creased by the same rules.
+#
+# A fold is not a stripe. It is a shadow on the face turning away from the light
+# and a highlight on the face turning into it, meeting at a sharp crest. Each
+# crease below is that cross-section swept along the sheet, faded in and out
+# along its length, and nudged off-straight by a displacement map so that it
+# wanders the way a real fold does.
+#
+# The creases go under the print, as they do on the page. The ink lies flat on
+# the paper rather than riding over it, which is what the receipt does and is
+# the whole point of matching it.
+PAPER_SEED = 11
+
+# paper.js lays out a pattern 400 units wide and stretches it across the sheet,
+# and every crease length below is one of its lengths times this. Tying it to
+# the bear's own scale -- the card draws the bear at twice the size the page
+# does -- is the tempting thing and it leaves two creases on the whole card,
+# because the card is a short crop of a sheet that is metres long on the page.
+# Held nearer the page's own scale, the card gets the four or five folds a piece
+# of receipt this size would actually have picked up.
+PAPER_ZOOM = 1.35
+CREASE_SPACING = 115  # pattern units; roughly one fold per this much paper
+SPECK_AREA = 80000  # pattern units squared per speck of pulp caught in the sheet
+HARD_FOLD = 0.28  # the share of folds that are creases rather than handling
+
+# The paper's own tooth, over the flat fill. The surface -- grain, striations,
+# mottle -- is in styles/paper.css rather than paper.js, and is the same stock
+# on every sheet; this stands in for it at the one frequency that survives the
+# card being looked at in a chat list.
+GRAIN = 0.10
+
+# Drawn at twice the size it is served at and shrunk back, which is what lands
+# the dot-matrix type and the crease displacement on a properly filtered edge
+# rather than a hard one.
+SUPERSAMPLE = 2
+
+
+def stop(offset, lit, opacity):
+    """One gradient stop. Black is the SVG default, so only lit stops name it."""
+    colour = " stop-color='#fff'" if lit else ''
+    return f"<stop offset='{offset:.3f}'{colour} stop-opacity='{opacity:.3f}'/>"
+
+
+def swells(rng, width, height, defs, body):
+    """Broad, very faint shading: the sheet is not lying flat to begin with.
+
+    These are the one thing not scaled off the pattern. On the page a swell runs
+    220 to 520px down a receipt that is thousands long, so it is a soft patch;
+    given those same pixels on a card 630 tall it is most of the sheet, and the
+    card comes out with a dirty bottom edge. They are taken as the share of the
+    sheet they are there instead.
+    """
+    for index in range(round(rng.uniform(3, 6))):
+        name = f'b{index}'
+        defs.append(
+            f"<linearGradient id='{name}' x1='0' y1='0' x2='0' y2='1'>"
+            f"{stop(0, False, 0)}"
+            f"{stop(0.5, False, rng.uniform(0.016, 0.038))}"
+            f"{stop(1, False, 0)}"
+            f'</linearGradient>'
+        )
+        band = rng.uniform(0.12, 0.33) * height
+        top = rng.uniform(-0.05, 0.98) * height
+        body.append(
+            f"<rect x='0' y='{top:.2f}' width='{width}' height='{band:.2f}' "
+            f"fill='url(#{name})'/>"
+        )
+
+
+def folds(rng, width, height, zoom, defs, body):
+    """Every crease across the sheet, as paper.js draws them."""
+    count = max(2, round(height / (CREASE_SPACING * zoom)))
+    bleed = width * 0.25
+
+    for index in range(count):
+        hard = rng.random() < HARD_FOLD
+        valley = rng.random() < 0.5
+        y = ((index + rng.uniform(0.15, 0.85)) / count) * height
+        band = rng.uniform(11, 20) if hard else rng.uniform(6, 13)
+        band *= zoom
+        angle = rng.uniform(-2.8, 2.8)
+        shadow = rng.uniform(0.07, 0.12) if hard else rng.uniform(0.035, 0.075)
+        light = rng.uniform(0.18, 0.34) if hard else rng.uniform(0.08, 0.18)
+        # Where the crest sits across the band -- never exactly in the middle.
+        apex = rng.uniform(0.44, 0.58)
+
+        # The cross-section of a ridge under one light: the face turning into
+        # it, the crest -- bare paper, not a white line, since nothing on a
+        # sheet this pale can be brighter than the sheet -- then the face
+        # turning away, and a long soft tail behind it. The tail runs about
+        # three times the lit ramp on purpose; that asymmetry is the ambient
+        # light the fold shades itself from.
+        profile = [
+            (0.0, True, 0.0),
+            (apex - 0.28, True, light),
+            (apex + 0.02, False, 0.0),
+            (apex + 0.12, False, shadow),
+            (apex + 0.34, False, shadow * 0.42),
+            (1.0, False, 0.0),
+        ]
+        if valley:
+            profile = [(1.0 - o, w, a) for o, w, a in reversed(profile)]
+
+        shade = f'g{index}'
+        defs.append(
+            f"<linearGradient id='{shade}' x1='0' y1='0' x2='0' y2='1'>"
+            + ''.join(stop(*s) for s in profile)
+            + '</linearGradient>'
+        )
+
+        # Fade along the length. A fold running edge to edge at full strength is
+        # the tell that gives drawn-on creases away, so most of these start or
+        # end somewhere in the middle of the paper.
+        starts_off = rng.random() < 0.35
+        ends_off = rng.random() < 0.35
+        start = 0.0 if starts_off else rng.uniform(0, 0.4)
+        end = 1.0 if ends_off else rng.uniform(0.6, 1.0)
+        peak = rng.uniform(start + 0.15, end - 0.15)
+        length = f'm{index}'
+        defs.append(
+            f"<linearGradient id='{length}' x1='0' y1='0' x2='1' y2='0'>"
+            f"{stop(start, True, 1 if starts_off else 0)}"
+            f"{stop(peak, True, 1)}"
+            f"{stop(end, True, 1 if ends_off else 0)}"
+            f'</linearGradient>'
+            f"<mask id='k{index}'><rect x='{-bleed:.1f}' y='0' "
+            f"width='{width + 2 * bleed:.1f}' height='{height}' "
+            f"fill='url(#{length})'/></mask>"
+        )
+
+        body.append(
+            f"<rect x='{-bleed:.1f}' y='{y - band / 2:.2f}' "
+            f"width='{width + 2 * bleed:.1f}' height='{band:.2f}' "
+            f"fill='url(#{shade})' mask='url(#k{index})' "
+            f"transform='rotate({angle:.2f} {width / 2:.1f} {y:.2f})'/>"
+        )
+
+
+def specks(rng, width, height, zoom):
+    """Unbleached fibre and dirt carried through the pulp.
+
+    Outside the displacement group, because a speck is a particle in the paper
+    and not a shadow on it: smearing it along with the folds gives it away.
+    Counted by area in the pattern's own units, so the card is exactly as dirty
+    as the same patch of a receipt on the page.
+    """
+    marks = []
+    area = (width / zoom) * (height / zoom)
+    for _ in range(max(1, round(area / SPECK_AREA))):
+        marks.append(
+            f"<circle cx='{rng.uniform(0, width):.1f}' "
+            f"cy='{rng.uniform(0, height):.1f}' "
+            f"r='{rng.uniform(0.3, 0.9) * zoom:.2f}' "
+            f"opacity='{rng.uniform(0.1, 0.35):.2f}'/>"
+        )
+    for _ in range(max(1, round(area / SPECK_AREA / 4))):
+        x, y = rng.uniform(0, width - 9 * zoom), rng.uniform(0, height)
+        marks.append(
+            f"<line x1='{x:.1f}' y1='{y:.1f}' "
+            f"x2='{x + rng.uniform(3, 9) * zoom:.1f}' "
+            f"y2='{y + rng.uniform(-2, 2) * zoom:.1f}' "
+            f"stroke-width='{rng.uniform(0.35, 0.6) * zoom:.2f}' "
+            f"opacity='{rng.uniform(0.12, 0.3):.2f}'/>"
+        )
+    return ''.join(marks)
+
+
+def paper(width, height):
+    """The sheet the card is printed on: its defs, its creases, its specks."""
+    rng = random.Random(PAPER_SEED)
+    zoom = PAPER_ZOOM
+    defs, body = [], []
+
+    # One displacement map for the whole sheet: every fold on a given piece of
+    # paper wanders together, because it is the paper that is bent, not the fold.
+    defs.append(
+        f"<filter id='wander' x='-25%' y='-8%' width='150%' height='116%'>"
+        f"<feTurbulence type='fractalNoise' "
+        f"baseFrequency='{0.006 / zoom:.5f} {0.035 / zoom:.4f}' numOctaves='2' "
+        f"seed='{rng.randrange(9999)}' result='t'/>"
+        f"<feDisplacementMap in='SourceGraphic' in2='t' scale='{14 * zoom:.1f}' "
+        f"xChannelSelector='R' yChannelSelector='G'/></filter>"
+    )
+    defs.append(
+        f"<filter id='grain' x='0' y='0' width='100%' height='100%'>"
+        f"<feTurbulence type='fractalNoise' baseFrequency='{0.9 / zoom:.3f}' "
+        f"numOctaves='4' stitchTiles='stitch'/></filter>"
+    )
+
+    swells(rng, width, height, defs, body)
+    folds(rng, width, height, zoom, defs, body)
+
+    return (
+        ''.join(defs),
+        f"<rect width='{width}' height='{height}' fill='{paper_colour()}'/>"
+        f"<g filter='url(#wander)'>{''.join(body)}</g>"
+        f"<g fill='{INK}' stroke='{INK}'>{specks(rng, width, height, zoom)}</g>"
+        f"<rect width='{width}' height='{height}' filter='url(#grain)' "
+        f"opacity='{GRAIN}'/>",
+    )
+
+
+def measure(path):
+    """What the finished card is, rather than what it was meant to be."""
+    colour = np.asarray(Image.open(path).convert('RGB'), dtype=np.float32)
+    luma = colour.mean(axis=2)
+    ink = luma < 200
+    # Only paper well clear of the type: next to a letter these numbers are
+    # really measuring the letter.
+    clear = ~ink
+    for _ in range(6):
+        clear[1:] &= clear[:-1]
+        clear[:-1] &= clear[1:]
+        clear[:, 1:] &= clear[:, :-1]
+        clear[:, :-1] &= clear[:, 1:]
+    paper_px = luma[clear]
+    mode = int(np.bincount(paper_px.astype(int)).argmax())
+    print(
+        f'paper {mode} against the receipt\'s {paper_colour()}, '
+        f'creases reaching {int(paper_px.min())}, '
+        f'spread {np.percentile(paper_px, 99) - np.percentile(paper_px, 1):.1f} levels, '
+        f'blown highlights {int((colour.reshape(-1, 3) == 255).all(axis=1).sum())}'
+    )
+
+
 def build():
     font = load_font()
     cx = W / 2
 
     # Sizes are the receipt's own, scaled by eye rather than by one factor: the
     # card is read at thumbnail size in a chat list, so the name carries more of
-    # it here than it does on the page.
-    bear_size = 180
-    greeting_size, greeting_ls = 23, 0.22
-    name_size, name_ls = 62, 0.06
-    tagline_size, tagline_ls = 23, 0.04
+    # it here than it does on the page. The tagline is the line that sets how
+    # large the rest can be -- at 57 characters it reaches the card's edges
+    # first -- so everything is sized around the biggest it can be and still
+    # keep a margin.
+    bear_size = 246
+    greeting_size, greeting_ls = 30, 0.22
+    name_size, name_ls = 85, 0.06
+    tagline_size, tagline_ls = 29, 0.04
+    rule_width = 1064
 
     bear_height = bear_size * BEAR_ASPECT
-    # Measured from the top of the bear to the lower rule, so the whole header
-    # sits centred in the card rather than the text alone.
-    block = bear_height + 26 + greeting_size + 22 + name_size + 26 + tagline_size + 38 + 7
+    inset = bear_size * BEAR_INSET
+    # Measured from the top of the bear's ears to the tagline's baseline: the
+    # ink, not the grid the bear is burned into. The grid's blank top rows are
+    # worth thirty pixels here, and counting them hangs the whole header low
+    # enough that the gap above the bear is half again the gap under the
+    # tagline. Taking them off lands the two gaps on each other.
+    block = (
+        bear_height
+        - inset
+        + 30
+        + greeting_size
+        + 26
+        + name_size
+        + 34
+        + 7
+        + 34
+        + tagline_size
+    )
 
-    y = (H - block) / 2
+    y = (H - block) / 2 - inset
     bear_svg = bear_dots(bear_size, cx, y)
-    y += bear_height + 26 + greeting_size
+    y += bear_height + 30 + greeting_size
 
     greeting = text_path(font, "HI, I'M", greeting_size, greeting_ls, cx, y)
-    y += 22 + name_size
+    y += 26 + name_size
     name = text_path(font, 'GAVIN BOWDEN', name_size, name_ls, cx, y)
-    y += 26 + tagline_size
+    # The rule sits between the name and what the name is claiming, which is
+    # where the receipt puts a rule everywhere else: under a heading, above the
+    # lines it covers.
+    y += 34
+    divider = rule(cx, y, rule_width)
+    y += 7 + 34 + tagline_size
     tagline = text_path(
         font,
         'I BUILD SOFTWARE AND ML SYSTEMS. RECENTLY AT NASA LANGLEY.',
@@ -128,69 +402,34 @@ def build():
         cx,
         y,
     )
-    y += 38
 
-    # Paper grain and creases, the same two ideas as .sheet: fine noise over the
-    # whole sheet, then a few soft folds with a lit crest.
-    creases = ''.join(
-        f'<rect x="-100" y="{cy - band / 2:.0f}" width="{W + 200}" height="{band}" '
-        f'fill="url(#crease)" transform="rotate({angle} {cx} {cy})" opacity="{op}"/>'
-        for cy, band, angle, op in (
-            (84, 26, -1.6, 0.8),
-            (318, 18, 1.1, 0.5),
-            (474, 24, -0.8, 0.7),
-            (572, 16, 1.9, 0.45),
-        )
-    )
-
+    defs, sheet = paper(W, H)
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
-  <defs>
-    <filter id="grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
-    </filter>
-    <linearGradient id="crease" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#000" stop-opacity="0"/>
-      <stop offset="0.47" stop-color="#000" stop-opacity="0.035"/>
-      <stop offset="0.5" stop-color="#fff" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="vignette" cx="0.5" cy="0.5" r="0.75">
-      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity="0.07"/>
-    </radialGradient>
-  </defs>
-
-  <g>
-    <rect width="{W}" height="{H}" fill="{paper_colour()}"/>
-    <rect width="{W}" height="{H}" filter="url(#grain)" opacity="0.4"/>
-    {creases}
-    <rect width="{W}" height="{H}" fill="url(#vignette)"/>
-
-    <g fill="{INK}">
-      {bear_svg}
-      <g opacity="0.8">{greeting}</g>
-      {name}
-      {tagline}
-    </g>
-    {rule(cx, y, 880)}
+  <defs>{defs}</defs>
+  {sheet}
+  <g fill="{INK}">
+    {bear_svg}
+    <g opacity="0.8">{greeting}</g>
+    {name}
+    {tagline}
   </g>
+  {divider}
 </svg>
 '''
     # The SVG is a step on the way, not an output: the PNG is what gets served,
     # and this script is the source anything else would be edited from.
-    rasterise(svg, OUT_PNG, W, H)
+    rasterise(svg, OUT_PNG, W * SUPERSAMPLE, H * SUPERSAMPLE)
+    image = Image.open(OUT_PNG).convert('RGB').resize((W, H), Image.LANCZOS)
 
     # The paper grain is per-pixel noise, which is the worst case for PNG: true
     # colour costs well over a megabyte of card that is, in the end, grey. A
     # palette holds the whole thing, and unscraped card bytes are card bytes a
     # chat client may decide not to fetch.
-    from PIL import Image
-
-    image = Image.open(OUT_PNG).convert('RGB')
     image.quantize(colors=64, dither=Image.Dither.FLOYDSTEINBERG).save(
         OUT_PNG, optimize=True
     )
     print(f'wrote {OUT_PNG.relative_to(ROOT)} ({OUT_PNG.stat().st_size // 1024} KB)')
+    measure(OUT_PNG)
 
 
 if __name__ == '__main__':

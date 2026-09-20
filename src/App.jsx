@@ -12,7 +12,15 @@ import { applyMeta } from './lib/head'
 function Page({ path }) {
   const route = routeFor(path)
   if (route.page === 'home') return <Home />
-  if (route.page === 'project') return <ProjectPage project={route.project} />
+  // Keyed on the slug so Next-project remounts the page rather than re-using
+  // it. Without the key React keeps the same DOM nodes and only swaps the text,
+  // and a CSS entry animation runs when its element is CREATED -- so the head's
+  // summary and details slip stayed at the end of a sequence that had already
+  // played, while the title (JS-driven, and keyed on its own text) retyped
+  // beside them. navigate() already puts the new page at the top, so nothing
+  // depends on the old nodes surviving.
+  if (route.page === 'project')
+    return <ProjectPage key={route.project.slug} project={route.project} />
   return <NotFound />
 }
 

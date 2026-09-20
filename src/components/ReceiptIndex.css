@@ -84,11 +84,29 @@
      move on its own instead of the page scrolling underneath it. */
   transition: transform var(--slide-ms, 0.3s) var(--ease-out) var(--slide-delay, 0.1s);
   /* Two jobs. It keeps the flex row taller than the receipt so the sticky panel
-     still has a containing block near the page bottom, and it is the run-out the
-     ending needs: without it the page stops scrolling only ~60px after the last
-     line item, leaving nowhere for the panel to retire and the receipt to come
-     back to centre for the totals and the barcode. */
-  padding-bottom: max(24px, 22vh);
+     still has a containing block near the page bottom, and it is the page's
+     scroll run-out: without it the page stops scrolling only ~60px after the
+     last line item, leaving nowhere for the panel to retire and the receipt to
+     come back to centre for the totals and the barcode.
+
+     22vh was generous about the second job — about 200px of blank paper between
+     the tear edge and the copyright on an ordinary window, most of it slack —
+     so this is the same thing written as what the scrolling actually needs,
+     which is roughly half as much.
+
+     The floor is not a taste: the last line item has to reach the focus line
+     with MIN_TAIL (80px) of scroll left over, or the tracking in
+     ReceiptIndex.jsx drops out of row alignment (canAlign) and spreads the
+     projects across whatever scroll remains. Everything below the focus line is
+     page the reader still has to be able to scroll, so the requirement grows
+     with the window at (1 - focus ratio) — and against it the sheet already
+     prints ~416px below its last line item, with another ~133px underneath from
+     the section padding and the footer. 450 leaves about 20px in hand. Taken
+     from the same custom property the tracking sets, so the two cannot drift. */
+  padding-bottom: max(
+    24px,
+    calc((1 - var(--focus-ratio, 0.42)) * 100vh - 450px)
+  );
 }
 
 .is-open .receipt-paper {

@@ -166,36 +166,79 @@
    from furthest, takes the longest, and grows the last hair of its size on the
    way. The link under it is small and quick.
 
-   And all of it on one curve, which spends nearly all its travel in the first
-   quarter of the duration: each beat lands promptly and settles, instead of the
-   whole card drifting in at an even speed. */
+   All of it travels on --ease-enter, which spends nearly all its distance in
+   the first quarter of the duration: each beat lands promptly and settles,
+   instead of the whole card drifting in at an even speed.
+
+   But each beat is TWO animations, not one -- the travel on that curve, and the
+   opacity on --ease-fade over a longer run. A single shorthand has to fade on
+   the same curve it moves on, and --ease-enter on an opacity is what a beat
+   popping in actually IS: 86% opaque a quarter of the way through, so the thing
+   is simply there, and the rest of the duration is a transform nobody is
+   looking at any more. Moving and appearing want opposite shapes, so they are
+   given one each. Nothing here moves further or faster than it did; it just
+   stops announcing itself before it has arrived. See the motion block in
+   ../index.css.
+
+   The durations below are the home panel's, which re-runs this whole sequence
+   every time the reader moves down a row and so cannot afford to be leisurely.
+   A project page's head opens once and is watched -- it runs the same beats
+   slower, at the bottom of this file. */
 .preview.is-active .preview__desc {
-  animation: preview-rise 0.38s var(--ease-enter) both;
+  animation:
+    preview-rise var(--beat-ms, 0.38s) var(--ease-enter) both,
+    stage-fade var(--beat-fade-ms, 0.52s) var(--ease-fade) both;
   animation-delay: calc(var(--type-ms) - var(--stage-lead));
 }
 
 .preview.is-active .preview__media {
-  animation: preview-lift 0.52s var(--ease-enter) both;
+  animation:
+    preview-lift 0.52s var(--ease-enter) both,
+    stage-fade 0.66s var(--ease-fade) both;
   animation-delay: calc(var(--type-ms) - var(--stage-lead) + 120ms);
 }
 
 .preview.is-active .preview__cta {
-  animation: preview-rise 0.34s var(--ease-enter) both;
+  animation:
+    preview-rise 0.34s var(--ease-enter) both,
+    stage-fade 0.46s var(--ease-fade) both;
   animation-delay: calc(var(--type-ms) - var(--stage-lead) + 230ms);
 }
 
+/* No opacity in either of these -- that is stage-fade's job, on its own curve.
+   --rise is how far a line of text comes from, so the page head can ask for a
+   longer one without a second keyframe. */
 @keyframes preview-rise {
   from {
-    opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(var(--rise, 6px));
   }
 }
 
 @keyframes preview-lift {
   from {
-    opacity: 0;
     transform: translateY(14px) scale(0.985);
   }
+}
+
+/* The same sequence, slower, as the head of a project page.
+
+   The home panel is scrubbed: the reader runs down the receipt and every row
+   restarts these beats, so they have to be over before the next one begins.
+   Nothing about a project page's head is scrubbed. It opens once, at the top of
+   a page the reader has just chosen to read, and it is the first thing they
+   look at -- so the summary can take its time arriving, travel far enough for
+   the movement to register as movement, and finish settling well after it has
+   become readable. At the home page's 0.38s over 6px it did neither: it was
+   legible almost immediately and the travel was too small to see, which is the
+   whole of why it read as a pop rather than as an entrance.
+
+   The lead grows with it, on .project__head in ../pages/ProjectPage.css, so the
+   longer fade still starts under the last few characters of the title instead
+   of waiting politely for them. */
+.preview--heading.is-active .preview__desc {
+  --rise: 12px;
+  --beat-ms: 0.62s;
+  --beat-fade-ms: 0.8s;
 }
 
 @media (prefers-reduced-motion: reduce) {

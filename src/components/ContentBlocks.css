@@ -73,9 +73,15 @@
    size before a byte of the media has arrived — the ripple is laid over a box
    that is not going to move, and taking it away shifts nothing. */
 /* Square and unclipped: the .window or .phone around it owns the shape, and
-   clips the recording to it. */
+   clips the recording to it.
+
+   The fill is the picture's own edge colour, put on the element by
+   ../lib/edgeFill.js once the picture has landed, and only for a contained one
+   — the only kind that leaves any of this box showing. Unset everywhere else,
+   so every other frame keeps the window's grey behind it as before. */
 .figure__frame {
   position: relative;
+  background: var(--edge-fill, transparent);
 }
 
 .figure__loading {
@@ -90,18 +96,49 @@
   object-fit: cover;
 }
 
+/* A diagram or a screenshot rather than a desktop capture: it keeps its own
+   shape, and the bars left over at the sides are painted by the frame above in
+   the picture's own edge colour, so the two read as one plate. */
 .figure__img--contain {
   object-fit: contain;
 }
 
-/* With the native controls gone the clip itself is the play/pause button, from
-   the pointer and from the keyboard. */
+/* With the native controls gone the clip itself is the button, from the pointer
+   and from the keyboard: pressing it hands the recording to the browser's own
+   player, full screen, at the frame it was on. */
 .figure__video {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: contain;
   cursor: pointer;
+}
+
+/* A clip that declared its own ratio is poured into a box of exactly that
+   shape, so filling the box crops nothing. The shape arrives as --ratio on the
+   element rather than as an inline aspect-ratio, because an inline length
+   outranks every selector — including the one below, which has to be able to
+   take the shape away again once the clip is the whole screen. */
+.figure__video--ratio {
+  aspect-ratio: var(--ratio);
+  object-fit: cover;
+}
+
+/* In the player the clip is the screen. Every shape above is the shape of a
+   frame it sits in on the page — a Mac window, an iPhone — and none of them
+   apply once it has left them: the picture is let alone and the black around it
+   is the player's. Two rules rather than one selector list, because a browser
+   that does not know one of these two spellings throws the whole list away. */
+.figure__video:fullscreen {
+  aspect-ratio: auto;
+  object-fit: contain;
+  cursor: auto;
+}
+
+.figure__video:-webkit-full-screen {
+  aspect-ratio: auto;
+  object-fit: contain;
+  cursor: auto;
 }
 
 .figure__video:focus-visible {
@@ -215,5 +252,121 @@
 @media (max-width: 600px) {
   .block__gallery {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Media arriving ---------------------------------------------------------- */
+
+/* A window opens when there is something to put in it. A clip's poster can be
+   half a second coming on a phone, and a <video> paints nothing at all until it
+   lands — so the frame sat there empty and the picture cut in, in a single
+   frame, with no transition of any kind. These are Mac windows, so they open
+   like one: the frame springs the last few per cent of its size and the picture
+   comes up inside it.
+
+   That is a JavaScript-driven reveal on a prerendered page, which normally
+   means a flash of the wrong state before the bundle arrives. Not here, for a
+   pleasant reason: a picture that has not loaded paints nothing, so holding one
+   back costs nothing to look at. ../lib/loading.js only ever marks a figure as
+   waiting if it is genuinely still empty at the moment it runs, so the reader
+   cannot see the difference — and anything already decoded is left alone and
+   never animates at all. A reader with no JavaScript gets neither class and
+   sees every figure exactly as it lands, as before any of this. */
+
+/* Still coming. opacity rather than visibility, which on a picture that never
+   arrives would take its alt text with it — and `error` counts as landing in
+   the hook for the same reason. */
+:is(.window, .phone).is-waiting .figure__frame > :is(img, video) {
+  opacity: 0;
+}
+
+/* The frame itself: a scale, and deliberately no opacity. The empty window was
+   already on screen and must not blink — it is the same window, with something
+   in it now. */
+:is(.window, .phone).is-landed {
+  animation: frame-pop 0.34s var(--ease-nudge);
+}
+
+:is(.window, .phone).is-landed .figure__frame > :is(img, video) {
+  animation: media-in 0.3s var(--ease-enter) both;
+}
+
+@keyframes frame-pop {
+  from {
+    transform: scale(0.97);
+  }
+}
+
+@keyframes media-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Play ------------------------------------------------------------------- */
+
+/* The clip is its own play button, and until now it said so only to a pointer
+   that happened to be over it. Every other reader — a browser that refused the
+   autoplay, a phone in low power mode, anyone who asked for less motion and had
+   the clips stood down for them on purpose — was left looking at a still frame
+   with nothing to say it was a clip at all.
+
+   No pointer events: the press it advertises is the clip underneath, which is
+   already focusable, already named, and already toggles from the keyboard. */
+.figure__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  /* Dark glass over whatever frame it has landed on, rather than a colour: the
+     posters are screen recordings and can be any brightness at all. */
+  background: rgb(0 0 0 / 0.42);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 1px 12px rgb(0 0 0 / 0.25);
+  color: #fff;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+
+/* The triangle, nudged right of true centre: a play glyph is centred on its
+   visual weight rather than its bounding box, or it reads as leaning back. */
+.figure__play::after {
+  content: '';
+  margin-left: 5px;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 18px solid currentColor;
+}
+
+/* Running, or nothing to run yet. Faded rather than dropped, so a clip pausing
+   under the reader's finger does not snap a badge onto the frame. */
+.figure__play.is-hidden {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.86);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No pop: the frame stays exactly where it is. The picture still comes up
+     rather than cutting in — a cross-fade is not the kind of motion the
+     preference is about, and it is the whole of what makes the arrival
+     readable. */
+  :is(.window, .phone).is-landed {
+    animation: none;
+  }
+
+  .figure__play {
+    transition: opacity 0.2s var(--ease-out);
+  }
+
+  .figure__play.is-hidden {
+    transform: translate(-50%, -50%);
   }
 }

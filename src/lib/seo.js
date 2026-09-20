@@ -21,7 +21,7 @@ export const PROFILES = {
 // image hard and by URL, so the ?v is how a redraw reaches the chats that have
 // already seen the old one -- bump it when the card changes. Absolute, since
 // Facebook and Slack will not resolve a relative URL.
-const DEFAULT_OG = `${SITE_URL}/og.png?v=2`
+const DEFAULT_OG = `${SITE_URL}/og.png?v=4`
 
 const absolute = (path) => (path?.startsWith('http') ? path : `${SITE_URL}${path}`)
 const projectUrl = (project) => absolute(projectPath(project.slug))

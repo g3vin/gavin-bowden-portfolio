@@ -75,14 +75,14 @@ function ProjectPage({ project }) {
 
             {links.length > 0 && (
               <>
-                <div className="rule" aria-hidden="true" />
+                <div className="rule rule--double" aria-hidden="true" />
                 <ul className="slip-list">
                   {links.map((link) => {
                     const host = new URL(link.href).host.replace(/^www\./, "");
                     return (
                       <li key={link.href}>
                         <a
-                          className="slip-link project-slip__link"
+                          className="slip-row slip-link slip-link--row"
                           href={link.href}
                           target="_blank"
                           rel="noreferrer"
@@ -91,8 +91,13 @@ function ProjectPage({ project }) {
                              the name is spelled out here. */
                           aria-label={`${link.label}: ${host}, opens in a new tab`}
                         >
-                          <span className="slip-link__value">{link.label}</span>{" "}
-                          <span aria-hidden="true">↗</span>
+                          <span className="slip-label">{link.label}</span>
+                          <span className="slip-link__target">
+                            <span className="slip-link__value">{host}</span>{" "}
+                            <span className="slip-link__go" aria-hidden="true">
+                              &gt;
+                            </span>
+                          </span>
                         </a>
                       </li>
                     );
@@ -127,13 +132,16 @@ function ProjectPage({ project }) {
             Thank you for reading
           </p>
           <Link
-            className="slip-row slip-link project-footer__next"
+            className="slip-row slip-link slip-link--row project-footer__next"
             to={projectPath(next.slug)}
             aria-label={`Next project: ${next.title}`}
           >
             <span className="slip-label">Next</span>
-            <span className="slip-link__value">
-              {next.title} <span aria-hidden="true">→</span>
+            <span className="slip-link__target">
+              <span className="slip-link__value">{next.title}</span>{" "}
+              <span className="slip-link__go" aria-hidden="true">
+                &gt;
+              </span>
             </span>
           </Link>
         </div>

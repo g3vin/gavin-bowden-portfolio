@@ -79,11 +79,26 @@ const FOCUS_RATIO = 0.42;
 // Minimum scroll the last row must own before natural alignment is worth using.
 const MIN_TAIL = 80;
 
-// The panel opens as the first row appears from the bottom, not when it reaches
-// the focus line: the receipt's move to the left has to be finished and settled
-// before the first project is the thing being read. Opening it at the focus line
-// put a 0.5s layout move in direct competition with project one.
-const OPEN_RATIO = 0.9;
+// How far ahead of the first row the panel comes out, and how far past the last
+// row it stays, measured in row gaps rather than in screens.
+//
+// It opens before the row reaches the focus line, not when it gets there: the
+// receipt's move to the left has to be finished and settled before the first
+// project is the thing being read, and opening it on the line put a 0.5s layout
+// move in direct competition with project one. That much was always true. What
+// was wrong was measuring the lead-in against the viewport -- nine tenths of a
+// screen, floored to a token 48px by the header being shorter than that -- when
+// what every other project gets is half the gap between two rows. A project in
+// the middle of the list is selected from half a gap before its row reaches the
+// line until half a gap after, and one gap is all it gets. Against the viewport
+// the two ends were getting two and a half times that and nearly twice it, for
+// no reason the reader could see: the first project simply sat there while the
+// list came up the screen, and the last one hung on into the sign-off.
+//
+// At half a gap the ends are the middle of the list: the panel opens half a gap
+// before row one is on the line, closes half a gap after the last row is, and
+// all eight projects own exactly one gap of scroll.
+const OPEN_LEAD = 0.5;
 
 // The receipt has to be centred and alone on arrival, so on a tall window that
 // already shows the first row the panel still waits for a deliberate scroll.
@@ -176,6 +191,16 @@ const PANEL_SLIDE_MS = 360;
 const ENTER_DELAY_MS = 300;
 const ENTER_MS = 800;
 
+// How long a row that has been asked for keeps the panel while the page travels
+// to it. The browser's smooth scroll does not say when it has finished, so the
+// lock normally ends the moment the tracking agrees with it — this is only the
+// backstop for a scroll that never arrives, because the layout moved under it or
+// the page ran out before the row reached the line. Generous on purpose: ending
+// it early puts the rows in between back on the panel, which is the whole of
+// what it is there to prevent, while overstaying costs nothing — any input at
+// all drops it on the spot.
+const FOCUS_LOCK_MS = 1200;
+
 // Matches the CSS breakpoint that hides the side panel. Below it the scroll
 // tracking stands down and the panel is not rendered, so JS has to know too.
 const COMPACT_QUERY = "(max-width: 800px)";
@@ -195,6 +220,14 @@ function ReceiptIndex() {
   // the render that opens it already knows to hold the title for the slide;
   // cleared shortly after, so moving between rows types immediately.
   const [isEntering, setIsEntering] = useState(true);
+  // The row the page is currently travelling to, and when to stop waiting for
+  // it: { index, until }, or null when nothing has been asked for. Clicking or
+  // tabbing a row five projects down scrolls there, and the tracking pass runs
+  // on every frame of that scroll — so without this the panel is handed each
+  // row on the way past, and the reader watches four titles type themselves
+  // before the one they picked. A ref because the scroll handler reads it
+  // without wanting to re-subscribe, and writing it must not cost a render.
+  const focusLockRef = useRef(null);
   const itemRefs = useRef([]);
   const listRef = useRef(null);
 
@@ -271,21 +304,31 @@ function ReceiptIndex() {
       const focusLine = viewport * FOCUS_RATIO;
       const docTop = (el) => el.getBoundingClientRect().top + scrollY;
 
+      // The scroll offset that parks each row on the focus line: what the
+      // selection measures distance from, and what the settle aims at.
+      const rowYs = els.map((el) => docTop(el) - focusLine);
+      const last = rowYs.length - 1;
+      // The gap at each end of the list, which is what a project's turn is
+      // worth. Taken from the adjacent pair rather than averaged, so a row that
+      // wraps to an extra line lends its height to the two turns either side of
+      // it the same way it does in the middle. With a single row there is no
+      // gap to read and the row's own height stands in for one.
+      const firstGap = last > 0 ? rowYs[1] - rowYs[0] : els[0].offsetHeight;
+      const lastGap = last > 0 ? rowYs[last] - rowYs[last - 1] : firstGap;
+
       return {
         count: els.length,
-        // The scroll offset that parks each row on the focus line: what the
-        // selection measures distance from, and what the settle aims at.
-        rowYs: els.map((el) => docTop(el) - focusLine),
-        // The panel is out from the moment the first row appears at the bottom
-        // of the window until the last one has gone by.
-        openY: Math.max(
-          docTop(els[0]) - viewport * OPEN_RATIO,
-          MIN_OPEN_SCROLL,
-        ),
-        // The list is done when its last line clears the focus line, which
-        // gives the last project the same dwell as every other one before the
-        // panel retires for the sign-off.
-        endY: docTop(list) + list.offsetHeight - focusLine,
+        rowYs,
+        // The panel is out from half a gap before the first row reaches the
+        // focus line until half a gap after the last one has: the same turn
+        // every project in the middle of the list gets. The floor keeps the
+        // receipt centred and alone on arrival, so a window tall enough to
+        // show the first row already still waits for a deliberate scroll.
+        openY: Math.max(rowYs[0] - firstGap * OPEN_LEAD, MIN_OPEN_SCROLL),
+        // Measured from the last row, not from the bottom of the list: the list
+        // box ends below its last line by that line's full height, and the
+        // difference was the last project holding the panel into the sign-off.
+        endY: rowYs[last] + lastGap * OPEN_LEAD,
         maxScroll: document.documentElement.scrollHeight - viewport,
       };
     };
@@ -346,6 +389,23 @@ function ReceiptIndex() {
         settleFrame = progress < 1 ? requestAnimationFrame(step) : 0;
       };
       settleFrame = requestAnimationFrame(step);
+    };
+
+    // The selection, filtered through the focus lock. While a row is on its way
+    // to the focus line it keeps the panel, whatever the page is passing; the
+    // lock is dropped as soon as the tracking picks that row by itself, which is
+    // the scroll arriving. Returns false when the lock held, meaning the caller
+    // has nothing further to do with this pass: a page already travelling to a
+    // row needs no help finishing.
+    const select = (index, now) => {
+      const lock = focusLockRef.current;
+      if (lock && now < lock.until && index !== lock.index) {
+        setActiveIndex(lock.index);
+        return false;
+      }
+      focusLockRef.current = null;
+      setActiveIndex(index);
+      return true;
     };
 
     // `settled` marks the pass that runs after the page has stopped moving: it
@@ -439,7 +499,7 @@ function ReceiptIndex() {
             next = index;
           }
         }
-        setActiveIndex(next);
+        if (!select(next, now)) return;
 
         // Four reasons not to touch the page, on top of the two inside
         // settleTarget. Only the end of a scroll may start a settle, and only
@@ -473,8 +533,9 @@ function ReceiptIndex() {
       const span = geometry.maxScroll - startY;
       const progress =
         span > 0 ? Math.min(1, Math.max(0, (scrollY - startY) / span)) : 1;
-      setActiveIndex(
+      select(
         Math.min(geometry.count - 1, Math.floor(progress * geometry.count)),
+        now,
       );
     };
 
@@ -512,7 +573,16 @@ function ReceiptIndex() {
     // no use for this, since the settle raises them itself; these are the things
     // that cause a scroll rather than the scroll itself. Captured, so nothing in
     // the page can stop one reaching here.
-    const onInput = () => cancelSettle();
+    // The lock goes with it: a reader who reaches for the wheel mid-journey has
+    // taken the page back, and the row they asked for a moment ago no longer
+    // gets to hold the panel against where they are actually going. Safe to do
+    // here even though this fires on the way *into* a lock — the keydown that
+    // moves focus, and the pointerdown that precedes a click, both land before
+    // the focus event that sets it.
+    const onInput = () => {
+      cancelSettle();
+      focusLockRef.current = null;
+    };
     const inputEvents = ["wheel", "touchstart", "pointerdown", "keydown"];
 
     // A pointer goes down on a scrollbar and the reader may hold it anywhere,
@@ -591,6 +661,11 @@ function ReceiptIndex() {
     const target = window.innerHeight * FOCUS_RATIO;
     const delta = el.getBoundingClientRect().top - target;
     if (Math.abs(delta) < 4) return;
+    // The panel prints the row that was asked for now, and types it once, while
+    // the page goes to meet it. Taken before the scroll starts, so the first
+    // tracking pass of it already knows whose journey this is.
+    focusLockRef.current = { index, until: performance.now() + FOCUS_LOCK_MS };
+    setActiveIndex(index);
     // Tabbing still has to bring the row to the line — otherwise the keyboard
     // and the highlight disagree — but for a reader who asked for less motion
     // it arrives there instantly rather than gliding.

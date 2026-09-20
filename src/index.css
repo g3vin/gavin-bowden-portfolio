@@ -18,7 +18,7 @@
   /* The page's top and bottom padding. */
   --page-pad-block: 32px;
 
-  /* Motion. Three curves, each with one job, so nothing on the site has to
+  /* Motion. Four curves, each with one job, so nothing on the site has to
      invent its own and no two things that move together disagree about how.
 
        enter — for something arriving. Nearly all of the travel is spent in the
@@ -26,6 +26,15 @@
                settles, rather than drifting in at an even speed. It is what
                makes a staged entrance read as decisive at durations long enough
                to be watched.
+       fade  — for the OPACITY of something arriving, which wants the opposite
+               shape. `enter` on an opacity is what makes an entrance look
+               cheap: it is 86% opaque a quarter of the way in, so the thing is
+               simply THERE, and whatever its transform does afterwards is a
+               detail nobody sees. This one eases in as well as out and is only
+               a third of the way up at that same quarter, so presence builds
+               instead of switching on. Pair the two — one animation for the
+               transform, one for the opacity — and a beat moves decisively
+               while still arriving gently.
        out   — for something leaving, or continuing a movement already under way:
                it goes at speed and arrives with none. The receipt's slide across
                the home page uses it because the reader's own scroll has just run
@@ -33,6 +42,7 @@
        nudge — a few pixels, under the pointer, with a little overshoot. Small
                enough that the overshoot reads as give rather than as a bounce. */
   --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-fade: cubic-bezier(0.33, 0, 0.2, 1);
   --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-nudge: cubic-bezier(0.34, 1.28, 0.64, 1);
 
@@ -40,7 +50,12 @@
      Shared by the card's own sequence (components/ProjectPreview.css) and the
      details slip beside it on a project page (pages/ProjectPage.css), which are
      two stylesheets printing one movement. See the sequence comment in the
-     first of them for why the overlap is there at all. */
+     first of them for why the overlap is there at all.
+
+     This is the home page's figure, for a panel that re-runs the whole sequence
+     every time the reader moves down a row. A project page's head opens once
+     and is watched, so it runs longer and leads by more; it overrides this on
+     .project__head. */
   --stage-lead: 140ms;
 
   font: 16px/1.5 var(--sans);
@@ -48,6 +63,17 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* The opacity half of every staged entrance on the site, kept here beside the
+   curves because it is only ever run against --ease-fade and only ever as the
+   second animation on an element whose first one moves it. Splitting the two
+   apart is the whole point: a shorthand that fades and travels together has to
+   pick one curve for both, and an arrival wants a different shape from each. */
+@keyframes stage-fade {
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

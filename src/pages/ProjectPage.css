@@ -18,6 +18,15 @@
 .project__head {
   --slip-w: 264px;
 
+  /* How far ahead of the title's last character the rest of the head starts.
+     Well past the 140ms :root sets for the home panel, because the beats under
+     this title are longer and fade in on a curve that starts slowly (see the
+     sequence comments in ../components/ProjectPreview.css). A gentle fade that
+     begins where a hard one did would read as a gap after the typing; begun
+     this much earlier, the summary is already on its way up while the last few
+     characters are still landing, and the head stays one movement. */
+  --stage-lead: 260ms;
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--slip-w);
   gap: 36px;
@@ -43,20 +52,34 @@
 
    It is also the one thing in the head that is a physical object, so it arrives
    like one rather than like more text. It feeds DOWNWARD, the way a receipt
-   leaves a printer, while the type on the left rises -- and it comes in a third
-   of a degree off square, because a sheet that has just been torn off does not
+   leaves a printer, while the type on the left rises -- and it comes in about
+   half a degree off square, because a sheet that has just been torn off does not
    land perfectly straight. Both are small enough to be felt rather than
    noticed. */
 .project-slip__paper {
   margin-top: 14px;
-  animation: slip-feed 0.46s var(--ease-enter) both;
-  animation-delay: calc(var(--type-ms) - var(--stage-lead) + 180ms);
+  /* Two animations, not one: the feed on --ease-enter and the opacity on
+     --ease-fade, over a longer run than the feed takes. Together as a single
+     shorthand they had to share a curve, and --ease-enter on an opacity puts a
+     sheet at 86% in the first 110ms -- the slip was fully present before it had
+     travelled a third of its 14px, so the feed was something you could only
+     find by looking for it and what you actually saw was paper appearing all at
+     once. Split, the sheet is still moving while it is still arriving, which is
+     the only way a feed reads as a feed.
+
+     Slower and further than it was, for the same reason the summary beside it
+     is: paper is the heaviest thing on the head and should be the last to
+     settle. */
+  animation:
+    slip-feed 0.72s var(--ease-enter) both,
+    stage-fade 0.92s var(--ease-fade) both;
+  animation-delay: calc(var(--type-ms) - var(--stage-lead) + 200ms);
 }
 
+/* No opacity here -- that is stage-fade's job, on its own curve. */
 @keyframes slip-feed {
   from {
-    opacity: 0;
-    transform: translateY(-14px) rotate(-0.35deg);
+    transform: translateY(-22px) rotate(-0.55deg);
   }
 }
 
@@ -118,14 +141,10 @@
   margin-top: 10px;
 }
 
-.project-slip__link {
-  display: block;
-  width: fit-content;
-}
-
-.project-slip__link + .project-slip__link,
+/* Link rows print like the fields above them, so they are spaced like the
+   fields above them. */
 .project-slip li + li {
-  margin-top: 4px;
+  margin-top: 10px;
 }
 
 @media (max-width: 860px) {
