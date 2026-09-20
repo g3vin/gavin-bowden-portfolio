@@ -1,6 +1,5 @@
-// What makes a sheet of receipt paper look like paper: the creases across it, the
-// specks caught in it and the torn edges top and bottom, all drawn as SVG data
-// URIs. The surface itself — formation, grain, striations, sheen — is the same
+// What makes a sheet of receipt paper look like paper: the creases across it and
+// the torn edges top and bottom, both drawn as SVG data URIs. The surface itself — formation, grain, striations, sheen — is the same
 // stock on every sheet and lives in ../styles/paper.css instead.
 //
 // A fold is not a stripe: it is a shadow on the face turning away from the
@@ -53,28 +52,6 @@ const round = (n, places) => Math.round(n * 10 ** places) / 10 ** places
 // URI left unencoded; a literal %23 in the source passes through untouched.
 const svgUrl = (svg) =>
   `url("data:image/svg+xml,${svg.replace(/</g, '%3C').replace(/>/g, '%3E').replace(/#/g, '%23')}")`
-
-// Where a sheet burns its mark, in pattern coordinates: centred horizontally,
-// at the very top, and as wide and as deep as the biggest of them (the home
-// receipt's bear, 116px of a 400px sheet, under 26px of padding). Specks are
-// kept out of it. Anywhere else on the paper a speck reads as what it is —
-// a fleck of pulp — but inside the mark it reads as a stray dot in a
-// dot-matrix drawing, which is what the 404's bear was wearing above its head.
-const MARK_BOX = { left: 140, right: 260, bottom: 140 }
-
-// A speck's position, drawn again if it lands under the mark. `tail` is how
-// far the speck reaches to the right of the point, so a fleck's far end stays
-// on the paper. It terminates: the x range always reaches past both sides of
-// the box, so a redraw can always miss it.
-function offMark(between, height, tail = 0) {
-  let x
-  let y
-  do {
-    x = between(6, PATTERN_WIDTH - 6 - tail)
-    y = between(0, height)
-  } while (y < MARK_BOX.bottom && x > MARK_BOX.left && x < MARK_BOX.right)
-  return [x, y]
-}
 
 function paperCreases(seed, height) {
   const rand = mulberry32(hashSeed(String(seed)))
@@ -178,41 +155,10 @@ function paperCreases(seed, height) {
     )
   }
 
-  // Specks: unbleached fibre and dirt carried through the pulp. They sit OUTSIDE
-  // the displacement group below, because a speck is a particle in the paper,
-  // not a shadow on it — smearing it along with the folds would give it away.
-  // Counted by area rather than by sheet, so a short slip is not as dirty as a
-  // long receipt.
-  // Coordinates to one decimal and sizes to two, paint hoisted onto the group,
-  // and circles rather than ellipses: a speck is barely a pixel across, and this
-  // data URI is already half the weight of the page it ships in — where every
-  // quote in it is escaped to six bytes on the way out.
-  //
-  // Everywhere on the paper but under the mark: see MARK_BOX.
-  const specks = []
-  const speckCount = Math.round((height * PATTERN_WIDTH) / 80000)
-  for (let i = 0; i < speckCount; i += 1) {
-    const [x, y] = offMark(between, height)
-    specks.push(
-      `<circle cx='${round(x, 1)}' cy='${round(y, 1)}' ` +
-        `r='${round(between(0.3, 0.9), 2)}' opacity='${round(between(0.1, 0.35), 2)}'/>`,
-    )
-  }
-
-  // A few longer flecks: a whole fibre rather than a speck of dirt.
-  for (let i = 0; i < Math.round(speckCount / 4); i += 1) {
-    const [x, y] = offMark(between, height, 6)
-    specks.push(
-      `<line x1='${round(x, 1)}' y1='${round(y, 1)}' x2='${round(x + between(3, 9), 1)}' y2='${round(y + between(-2, 2), 1)}' ` +
-        `stroke-width='${round(between(0.35, 0.6), 2)}' opacity='${round(between(0.12, 0.3), 2)}'/>`,
-    )
-  }
-
   const svg =
     `<svg xmlns='http://www.w3.org/2000/svg' width='${PATTERN_WIDTH}' height='${height}' preserveAspectRatio='none'>` +
     `<defs>${defs.join('')}</defs>` +
     `<g filter='url(%23w)'>${body.join('')}</g>` +
-    `<g fill='%23000' stroke='%23000'>${specks.join('')}</g>` +
     `</svg>`
 
   return svgUrl(svg)
@@ -328,8 +274,8 @@ function tearEdge(rand, flip) {
 
 // A sheet is a pure function of its seed and its height, and the sheets on a
 // page are a fixed handful — but the callers are components, so an un-cached
-// sheetStyle re-runs the whole pipeline (two dozen crease gradients, a hundred
-// specks, two torn edges) on every render. The home page re-renders on scroll,
+// sheetStyle re-runs the whole pipeline (two dozen crease gradients, two torn
+// edges) on every render. The home page re-renders on scroll,
 // so that was the paper being redrawn from scratch several times a second to
 // arrive at a string it had already built.
 const sheets = new Map()
