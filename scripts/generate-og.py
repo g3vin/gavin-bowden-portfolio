@@ -4,11 +4,11 @@
 The card is the same paper, the same dot-matrix bear and the same four lines the
 receipt opens with, so a shared link arrives looking like the page it opens.
 
-Nothing here runs at build time — the card is committed as public/og.png and
-this script only exists to redraw it when the receipt's header changes. It
-The paper is the page's own: the creases, swells and specks below are a port of
-src/lib/paper.js, so the card is creased by the rules that crease every sheet on
-the site rather than by a second idea of what this stock looks like.
+The paper is the page's own, all the way down: the creases and swells below are
+a port of src/lib/paper.js and the surface under them -- sheen, grain,
+striations, mottle -- is a port of the .sheet rule in src/styles/paper.css, so
+the card is the same stock at the same colour rather than a second idea of what
+receipt paper looks like.
 
 Nothing here runs at build time -- the card is committed as public/og.png and
 this script only exists to redraw it when the receipt's header changes. It needs
@@ -142,14 +142,74 @@ PAPER_SEED = 11
 # of receipt this size would actually have picked up.
 PAPER_ZOOM = 1.35
 CREASE_SPACING = 115  # pattern units; roughly one fold per this much paper
-SPECK_AREA = 80000  # pattern units squared per speck of pulp caught in the sheet
 HARD_FOLD = 0.28  # the share of folds that are creases rather than handling
 
-# The paper's own tooth, over the flat fill. The surface -- grain, striations,
-# mottle -- is in styles/paper.css rather than paper.js, and is the same stock
-# on every sheet; this stands in for it at the one frequency that survives the
-# card being looked at in a chat list.
-GRAIN = 0.10
+# The surface -- sheen, grain, striations, mottle -- is the same stock on every
+# sheet, so it lives in styles/paper.css rather than in paper.js, and `surface`
+# below is a port of the .sheet rule's background stack. Read that rule for why
+# each layer is the strength and the size it is; this file only restates what
+# has to change to print it on a card instead of on the page.
+#
+# Every frequency and amplitude below is the CSS's own number, unscaled, which
+# is the one thing on this card drawn at the page's size: the type is printed at
+# about twice the receipt's, because the card is read at thumbnail size in a
+# chat list, but the tooth is not. Magnified it stops being tooth -- at 2x the
+# grain reads as speckle and the formation as blotching, and the card goes from
+# a sheet of paper to a photograph of one. Held at 1:1, a crop of the card and
+# a crop of the receipt are the same stock under the same light.
+#
+# The width paper.css lays its surface out against: .receipt-paper is flex
+# 0 1 400px, and the striations' period is a shade under it on purpose. The card
+# is the same sheet printed wider, not a wider sheet, so the striations keep
+# that proportion rather than that pixel count -- held at 397 card pixels they
+# would repeat three times across and resolve into exactly the rhythm the period
+# was chosen to avoid.
+SHEET_WIDTH = 400
+
+# Every stop of the .sheet striations layer, as (pattern px, lit, alpha).
+STRIATION_PERIOD = 397
+STRIATIONS = (
+    (0, False, 0),
+    (15, False, 0),
+    (17, False, 0.01),
+    (19, False, 0),
+    (50, True, 0),
+    (52, True, 0.013),
+    (54, True, 0),
+    (95, False, 0),
+    (98, False, 0.014),
+    (101, False, 0),
+    (139.5, False, 0),
+    (141, False, 0.007),
+    (142.5, False, 0),
+    (186.5, True, 0),
+    (189, True, 0.011),
+    (191.5, True, 0),
+    (234, False, 0),
+    (236, False, 0.016),
+    (238, False, 0),
+    (276.5, False, 0),
+    (278, False, 0.006),
+    (279.5, False, 0),
+    (319, True, 0),
+    (321, True, 0.012),
+    (323, True, 0),
+    (363.5, False, 0),
+    (366, False, 0.009),
+    (368.5, False, 0),
+    (397, False, 0),
+)
+
+# The .sheet sheen: the long edges of a receipt sit in shadow and a broad
+# highlight falls across it. Stops as (share across the sheet, lit, alpha).
+SHEEN = (
+    (0.00, False, 0.03),
+    (0.09, False, 0),
+    (0.28, True, 0.045),
+    (0.55, True, 0),
+    (0.82, False, 0.014),
+    (1.00, False, 0.032),
+)
 
 # Drawn at twice the size it is served at and shrunk back, which is what lands
 # the dot-matrix type and the crease displacement on a properly filtered edge
@@ -258,40 +318,104 @@ def folds(rng, width, height, zoom, defs, body):
         )
 
 
-def specks(rng, width, height, zoom):
-    """Unbleached fibre and dirt carried through the pulp.
+def split_noise(name, frequency, octaves, seed, shadow, shadow_alpha, light_alpha):
+    """One of the surface's two noise layers, exactly as paper.css builds it.
 
-    Outside the displacement group, because a speck is a particle in the paper
-    and not a shadow on it: smearing it along with the folds gives it away.
-    Counted by area in the pattern's own units, so the card is exactly as dirty
-    as the same patch of a receipt on the page.
+    A single turbulence split two ways -- dark where the noise runs high, light
+    where it runs low -- because paper reads as both denser and thinner than its
+    average, not only darker. The three-entry transfer tables hold each half at
+    zero across the half of the range the other one owns, since overlapping
+    translucent black and white do not cancel, they compound.
+
+    The alpha comes from one channel, as turbulence writes independent noise
+    into all four and letting colour through is what makes grain read as
+    compression artefacting; and sRGB interpolation is named rather than left to
+    the linearRGB default, which moves the midpoint.
     """
-    marks = []
-    area = (width / zoom) * (height / zoom)
-    for _ in range(max(1, round(area / SPECK_AREA))):
-        marks.append(
-            f"<circle cx='{rng.uniform(0, width):.1f}' "
-            f"cy='{rng.uniform(0, height):.1f}' "
-            f"r='{rng.uniform(0.3, 0.9) * zoom:.2f}' "
-            f"opacity='{rng.uniform(0.1, 0.35):.2f}'/>"
+    red, green, blue = shadow
+    return (
+        f"<filter id='{name}' x='0' y='0' width='100%' height='100%' "
+        f"color-interpolation-filters='sRGB'>"
+        f"<feTurbulence type='fractalNoise' baseFrequency='{frequency:.5f}' "
+        f"numOctaves='{octaves}' seed='{seed}' result='n'/>"
+        f"<feColorMatrix in='n' type='matrix' result='k' values='"
+        f"0 0 0 0 {red} 0 0 0 0 {green} 0 0 0 0 {blue} 1 0 0 0 0'/>"
+        f"<feComponentTransfer in='k' result='d'>"
+        f"<feFuncA type='table' tableValues='0 0 {shadow_alpha}'/>"
+        f"</feComponentTransfer>"
+        f"<feColorMatrix in='n' type='matrix' result='v' values='"
+        f"0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1 0 0 0 0'/>"
+        f"<feComponentTransfer in='v' result='l'>"
+        f"<feFuncA type='table' tableValues='{light_alpha} 0 0'/>"
+        f"</feComponentTransfer>"
+        f"<feMerge><feMergeNode in='d'/><feMergeNode in='l'/></feMerge>"
+        f"</filter>"
+    )
+
+
+def surface(width, height, defs, body):
+    """The stock itself, under the creases: what .sheet paints on every sheet.
+
+    Bottom to top, which is the reverse of the order paper.css lists them in:
+    mottle, striations, grain, sheen. The creases the caller draws go over all
+    four, as they do on the page, and the print goes over those.
+
+    paper.css tiles the two noise layers and fades each tile to nothing at its
+    top and bottom so the joins cannot show. Nothing tiles here -- the card is
+    one rect and both layers cover it in a single pass -- so the fades come off
+    with the seams, and the card gets the middle of a sheet rather than a
+    sheet's worth of edges.
+    """
+    # Formation: fibre clumping in the base sheet showing through the coating as
+    # soft cloudiness. The largest feature by far, and the one the eye actually
+    # reads as paper. Its shadow half lifts a little blue rather than dropping
+    # to flat black -- a neutral shadow on an optically brightened sheet goes
+    # muddy, and the shading has to belong to the same stock as the paper.
+    defs.append(
+        split_noise('mottle', 0.008, 5, 17, (0, 0.03, 0.12), 0.045, 0.05)
+    )
+    body.append(f"<rect width='{width}' height='{height}' filter='url(#mottle)'/>")
+
+    # The machine direction runs down the roll, so coating and calender streaks
+    # run down the receipt, never across it.
+    period = width * STRIATION_PERIOD / SHEET_WIDTH
+    defs.append(
+        f"<linearGradient id='streaks' x1='0' y1='0' x2='1' y2='0'>"
+        + ''.join(
+            stop(x / STRIATION_PERIOD, lit, alpha) for x, lit, alpha in STRIATIONS
         )
-    for _ in range(max(1, round(area / SPECK_AREA / 4))):
-        x, y = rng.uniform(0, width - 9 * zoom), rng.uniform(0, height)
-        marks.append(
-            f"<line x1='{x:.1f}' y1='{y:.1f}' "
-            f"x2='{x + rng.uniform(3, 9) * zoom:.1f}' "
-            f"y2='{y + rng.uniform(-2, 2) * zoom:.1f}' "
-            f"stroke-width='{rng.uniform(0.35, 0.6) * zoom:.2f}' "
-            f"opacity='{rng.uniform(0.12, 0.3):.2f}'/>"
-        )
-    return ''.join(marks)
+        + f"</linearGradient>"
+        f"<pattern id='striations' patternUnits='userSpaceOnUse' "
+        f"width='{period:.2f}' height='{height}'>"
+        f"<rect width='{period:.2f}' height='{height}' fill='url(#streaks)'/>"
+        f"</pattern>"
+    )
+    body.append(f"<rect width='{width}' height='{height}' fill='url(#striations)'/>")
+
+    # The coating's micro-texture. Faint: a thermal sheet is precoated and
+    # calendered, so it is smooth, and sandy grain at any real strength is the
+    # tell that it is not paper.
+    defs.append(split_noise('grain', 0.16, 4, 5, (0, 0, 0), 0.05, 0.045))
+    body.append(f"<rect width='{width}' height='{height}' filter='url(#grain)'/>")
+
+    # A receipt curls off the roll and the coated surface is satin rather than
+    # matte, so the long edges sit in shadow and a broad highlight falls across
+    # the sheet.
+    defs.append(
+        f"<linearGradient id='sheen' x1='0' y1='0' x2='1' y2='0'>"
+        + ''.join(stop(*s) for s in SHEEN)
+        + f"</linearGradient>"
+    )
+    body.append(f"<rect width='{width}' height='{height}' fill='url(#sheen)'/>")
 
 
 def paper(width, height):
-    """The sheet the card is printed on: its defs, its creases, its specks."""
+    """The sheet the card is printed on: its surface, then its creases."""
     rng = random.Random(PAPER_SEED)
     zoom = PAPER_ZOOM
-    defs, body = [], []
+    defs, stock, body = [], [], []
+
+    surface(width, height, defs, stock)
 
     # One displacement map for the whole sheet: every fold on a given piece of
     # paper wanders together, because it is the paper that is bent, not the fold.
@@ -303,11 +427,6 @@ def paper(width, height):
         f"<feDisplacementMap in='SourceGraphic' in2='t' scale='{14 * zoom:.1f}' "
         f"xChannelSelector='R' yChannelSelector='G'/></filter>"
     )
-    defs.append(
-        f"<filter id='grain' x='0' y='0' width='100%' height='100%'>"
-        f"<feTurbulence type='fractalNoise' baseFrequency='{0.9 / zoom:.3f}' "
-        f"numOctaves='4' stitchTiles='stitch'/></filter>"
-    )
 
     swells(rng, width, height, defs, body)
     folds(rng, width, height, zoom, defs, body)
@@ -315,10 +434,8 @@ def paper(width, height):
     return (
         ''.join(defs),
         f"<rect width='{width}' height='{height}' fill='{paper_colour()}'/>"
-        f"<g filter='url(#wander)'>{''.join(body)}</g>"
-        f"<g fill='{INK}' stroke='{INK}'>{specks(rng, width, height, zoom)}</g>"
-        f"<rect width='{width}' height='{height}' filter='url(#grain)' "
-        f"opacity='{GRAIN}'/>",
+        + ''.join(stock)
+        + f"<g filter='url(#wander)'>{''.join(body)}</g>",
     )
 
 

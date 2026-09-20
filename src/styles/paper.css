@@ -52,12 +52,22 @@
   /* How deep the tear actually runs, which is not --tear. The band is 14px, but
      the tear line itself sits ~3px into it and escapes to ~8 at its deepest
      (see tearEdge in ../lib/paper.js), so inset by the escape depth: the
-     rectangle stays under paper along the whole edge, and the shadow still
-     reaches nearly as far past the bottom of the sheet as the filter's did. */
+     rectangle stays under paper along the whole edge, and nothing but blur
+     ever shows through the notches. */
   margin: 8px 0;
+  /* Three layers. The first is the contact shadow, tight to all four edges.
+     The other two carry the sheet's top and bottom edges, and each has to pay
+     back the 8px inset above before any of it shows past the tear: a layer's
+     reach past the rectangle is offset + blur/2 + spread, so the down layer
+     reaches 20px for 12px below the sheet and the up layer 14px for 6px above
+     it — less, since the light is overhead and a sheet casts little upward.
+     Their negative spreads keep the extra reach vertical: without them each
+     would widen the left and right sides by half its blur as well, and the
+     long edges would thicken to something the flat sides never had. */
   box-shadow:
     0 2px 3px rgb(0 0 0 / 0.18),
-    0 8px 16px rgb(0 0 0 / 0.12);
+    0 12px 20px -2px rgb(0 0 0 / 0.12),
+    0 -10px 14px -3px rgb(0 0 0 / 0.1);
 }
 
 .sheet {
